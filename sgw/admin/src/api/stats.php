@@ -5,6 +5,8 @@ $today  = date('d/M/Y');
 $ips    = [];   // ip => [total,200,403,429,444]  (today only)
 $tokens = [];   // token => [count, last_time]     (today only)
 $badUas = [];   // ua => count (403 only, today)
+$settings = read_settings_for_stats();
+$subscribePath = $settings['subscribe_path'] ?? '/api/v1/client/subscribe';
 
 // 全量日志用于可疑分析
 $suspTokenIps = [];  // token => {ip => true}
@@ -54,8 +56,8 @@ if (file_exists(LOG_FILE)) {
                 elseif ($status === 429) $ips[$ip]['s429']++;
                 elseif ($status === 444) $ips[$ip]['s444']++;
 
-                if (preg_match('/[?&]token=([^&\s]+)/i', $request, $tm)) {
-                    $tok = $tm[1];
+                $tok = extract_subscribe_token_from_request($request, $subscribePath);
+                if ($tok !== '') {
                     if (!isset($tokenBlacklist[$tok])) {
                         if (!isset($tokens[$tok])) $tokens[$tok] = ['count'=>0,'last_time'=>''];
                         $tokens[$tok]['count']++;
@@ -72,9 +74,9 @@ if (file_exists(LOG_FILE)) {
             // ── 全量可疑分析（200 状态的订阅请求，排除白名单IP和Token黑名单）──
             if ($status === 200
                 && !isset($whitelistIps[$ip])
-                && preg_match('/[?&]token=([^&\s]+)/i', $request, $tm)
             ) {
-                $tok = $tm[1];
+                $tok = extract_subscribe_token_from_request($request, $subscribePath);
+                if ($tok === '') continue;
                 if (!isset($tokenBlacklist[$tok])) {
                     $suspTokenIps[$tok][$ip] = true;
                     $suspIpTokens[$ip][$tok]  = true;
@@ -141,3 +143,9 @@ json_out([
     'susp_tokens' => $suspTokenList,
     'susp_ips'    => $suspIpList,
 ]);
+
+function read_settings_for_stats(): array {
+    if (!file_exists(SETTINGS_JSON)) return [];
+    $data = json_decode((string)@file_get_contents(SETTINGS_JSON), true);
+    return is_array($data) ? $data : [];
+}

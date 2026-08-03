@@ -46,6 +46,14 @@ if (!empty($_preSg['upstream_url'])) {
     }
 }
 function _val(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
+$__securityPatterns = $_preSg['security_waf_patterns'] ?? DEFAULT_SECURITY_WAF_PATTERNS;
+if (is_string($__securityPatterns)) {
+    $__securityPatterns = preg_split('/\r\n|\r|\n|\s*,\s*/', $__securityPatterns) ?: [];
+}
+if (!is_array($__securityPatterns) || !$__securityPatterns) {
+    $__securityPatterns = DEFAULT_SECURITY_WAF_PATTERNS;
+}
+$__securityPatterns = array_values(array_filter(array_map(static fn($v) => trim((string)$v), $__securityPatterns), static fn($v) => $v !== ''));
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -191,6 +199,16 @@ tr:hover td{background:rgba(99,102,241,.04)}
 /* IDC 汇总区域 */
 .idc-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
 .idc-section .card-title{margin-bottom:10px}
+.form-stack{display:flex;flex-direction:column;gap:12px}
+.form-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.check-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb, var(--bg-input) 78%, transparent)}
+.check-row input[type=checkbox]{accent-color:var(--accent);margin-top:2px;flex-shrink:0}
+.check-row strong{display:block;font-size:13px;color:var(--text);margin-bottom:2px}
+.check-row span{display:block;font-size:12px;color:var(--text3);line-height:1.5}
+.code-hint{display:inline-block;font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px}
+.textarea-input{background:var(--bg-input);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.6;outline:none;min-height:110px;width:100%;resize:vertical}
+.textarea-input:focus{border-color:var(--accent)}
+@media (max-width:760px){.form-grid-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -543,6 +561,59 @@ tr:hover td{background:rgba(99,102,241,.04)}
           </div>
         </div>
 
+        <!-- 安全设置 -->
+        <div class="card">
+          <div class="card-title">安全设置</div>
+          <div class="form-stack">
+            <div class="form-grid-2">
+              <div>
+                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">订阅访问限频（每分钟请求数）</label>
+                <input class="ip-input" id="cfg-security-rate-rpm" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_rate_rpm'] ?? DEFAULT_SECURITY_RATE_RPM)) ?>" style="width:100%">
+              </div>
+              <div>
+                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">Burst（瞬时放行峰值）</label>
+                <input class="ip-input" id="cfg-security-rate-burst" type="number" min="0" placeholder="5" value="<?= _val((string)($_preSg['security_rate_burst'] ?? '5')) ?>" style="width:100%">
+              </div>
+            </div>
+
+            <label class="check-row">
+              <input id="cfg-security-waf-enabled" type="checkbox" <?= !isset($_preSg['security_waf_enabled']) || $_preSg['security_waf_enabled'] ? 'checked' : '' ?>>
+              <div>
+                <strong>启用 WAF 规则拦截</strong>
+                <span>对命中危险关键词的订阅请求进行拦截。这里是 Nginx 侧规则拦截，不会宣称持久写入系统防火墙黑名单。</span>
+              </div>
+            </label>
+
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">危险关键词列表</label>
+              <textarea class="textarea-input" id="cfg-security-waf-patterns" placeholder="每行一个关键词或路径片段&#10;/cgi-bin/&#10;/etc/passwd&#10;wget"><?= _val(implode("\n", $__securityPatterns)) ?></textarea>
+              <div class="apply-hint" style="margin-top:8px">命中后建议直接返回拦截；默认包含 <span class="code-hint">/cgi-bin/</span>、<span class="code-hint">/etc/passwd</span>、<span class="code-hint">wget</span>。</div>
+            </div>
+
+            <label class="check-row">
+              <input id="cfg-security-auto-ban-enabled" type="checkbox" <?= !isset($_preSg['security_auto_ban_enabled']) || $_preSg['security_auto_ban_enabled'] ? 'checked' : '' ?>>
+              <div>
+                <strong>启用恶意探测自动临时抑制</strong>
+                <span>当单个来源在短时间内持续触发恶意探测时，按阈值做临时拦截/限速抑制，用于压制扫描流量；不是永久系统防火墙黑名单。</span>
+              </div>
+            </label>
+
+            <div class="form-grid-2">
+              <div>
+                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">自动抑制阈值（每分钟请求数）</label>
+                <input class="ip-input" id="cfg-security-auto-ban-rpm" type="number" min="1" placeholder="3" value="<?= _val((string)($_preSg['security_auto_ban_rpm'] ?? DEFAULT_SECURITY_AUTO_BAN_RPM)) ?>" style="width:100%">
+              </div>
+              <div>
+                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">自动抑制 Burst</label>
+                <input class="ip-input" id="cfg-security-auto-ban-burst" type="number" min="0" placeholder="2" value="<?= _val((string)($_preSg['security_auto_ban_burst'] ?? DEFAULT_SECURITY_AUTO_BAN_BURST)) ?>" style="width:100%">
+              </div>
+            </div>
+
+            <div class="apply-hint" style="color:#eab308">⚡ 保存后立即生成 Nginx 安全规则并 reload；该能力为自动临时封禁/拦截/限速，不会写入永久系统防火墙黑名单。</div>
+            <button class="btn-primary" onclick="saveSecuritySettings()">保存安全设置</button>
+          </div>
+        </div>
+
         <!-- SSL 证书信息 -->
         <div class="card">
           <div class="card-title">SSL 证书</div>
@@ -786,6 +857,7 @@ async function loadLogs() {
     toast('加载日志失败: ' + (logsData.error||''), 'err'); return;
   }
   allLogs = logsData.logs || [];
+  if (logsData.subscribe_path) currentSettings.subscribe_path = logsData.subscribe_path;
   renderLogs();
 }
 
@@ -797,7 +869,8 @@ function renderLogs() {
   const subOnly = document.querySelector('input[name="sub-filter"][value="subscribe"]').checked;
 
   let rows = allLogs.filter(l => {
-    if (subOnly && !l.request.includes('/api/v1/client/subscribe')) return false;
+    const sp = (currentSettings.subscribe_path || '/api/v1/client/subscribe').replace(/\/$/, '');
+    if (subOnly && !l.request.includes(sp)) return false;
     if (fIp     && !l.ip.toLowerCase().includes(fIp)) return false;
     if (fStatus && String(l.status) !== fStatus) return false;
     if (fToken  && !l.token.toLowerCase().includes(fToken)) return false;
@@ -1722,6 +1795,21 @@ async function loadSettings() {
   if (currentSettings.gateway_port) {
     document.getElementById('cfg-gateway-port').value = currentSettings.gateway_port;
   }
+  document.getElementById('cfg-security-rate-rpm').value = currentSettings.security_rate_rpm ?? 10;
+  document.getElementById('cfg-security-rate-burst').value = currentSettings.security_rate_burst ?? 5;
+  document.getElementById('cfg-security-waf-enabled').checked = !!(currentSettings.security_waf_enabled ?? true);
+  const wafPatterns = Array.isArray(currentSettings.security_waf_patterns)
+    ? currentSettings.security_waf_patterns
+    : (typeof currentSettings.security_waf_patterns === 'string'
+      ? currentSettings.security_waf_patterns.split(/\r?\n|\s*,\s*/)
+      : ['/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode']);
+  document.getElementById('cfg-security-waf-patterns').value = (wafPatterns || [])
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .join('\n') || '/cgi-bin/\n/etc/passwd\nwget\ncurl\nbusybox\nchmod\neval(\nbase64_decode';
+  document.getElementById('cfg-security-auto-ban-enabled').checked = !!(currentSettings.security_auto_ban_enabled ?? true);
+  document.getElementById('cfg-security-auto-ban-rpm').value = currentSettings.security_auto_ban_rpm ?? 3;
+  document.getElementById('cfg-security-auto-ban-burst').value = currentSettings.security_auto_ban_burst ?? 2;
   // 显示证书信息
   const cert = data.cert || {};
   const certEl = document.getElementById('cert-info');
@@ -1821,6 +1909,44 @@ async function saveUpstreamSettings() {
   });
   if (d.ok) {
     toast('✅ ' + (d.msg || '上游配置已更新'));
+    loadSettings();
+  } else {
+    toast(d.error || '保存失败', 'err');
+  }
+}
+
+async function saveSecuritySettings() {
+  const rateRpm = parseInt(document.getElementById('cfg-security-rate-rpm').value.trim(), 10);
+  const rateBurst = parseInt(document.getElementById('cfg-security-rate-burst').value.trim(), 10);
+  const autoBanRpm = parseInt(document.getElementById('cfg-security-auto-ban-rpm').value.trim(), 10);
+  const autoBanBurst = parseInt(document.getElementById('cfg-security-auto-ban-burst').value.trim(), 10);
+  const wafPatterns = document.getElementById('cfg-security-waf-patterns').value
+    .split(/\r?\n|,/)
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  if (isNaN(rateRpm) || rateRpm < 1) { toast('订阅访问限频需为大于 0 的整数', 'err'); return; }
+  if (isNaN(rateBurst) || rateBurst < 0) { toast('限频 burst 不能小于 0', 'err'); return; }
+  if (isNaN(autoBanRpm) || autoBanRpm < 1) { toast('自动抑制阈值需为大于 0 的整数', 'err'); return; }
+  if (isNaN(autoBanBurst) || autoBanBurst < 0) { toast('自动抑制 burst 不能小于 0', 'err'); return; }
+  if (!wafPatterns.length) { toast('请至少保留一条危险关键词', 'err'); return; }
+
+  const body = {
+    security_rate_rpm: rateRpm,
+    security_rate_burst: rateBurst,
+    security_waf_enabled: document.getElementById('cfg-security-waf-enabled').checked,
+    security_waf_patterns: wafPatterns,
+    security_auto_ban_enabled: document.getElementById('cfg-security-auto-ban-enabled').checked,
+    security_auto_ban_rpm: autoBanRpm,
+    security_auto_ban_burst: autoBanBurst,
+  };
+
+  const d = await apiFetch('/api/settings.php', {
+    method: 'POST', body: JSON.stringify(body),
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+  });
+  if (d.ok) {
+    toast('✅ 安全设置已保存');
     loadSettings();
   } else {
     toast(d.error || '保存失败', 'err');

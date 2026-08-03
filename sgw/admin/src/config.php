@@ -18,7 +18,18 @@ define('UA_WHITELIST_CONF',    '/etc/nginx/subscribe/ua_whitelist.conf');
 define('TOKEN_BLACKLIST_JSON', '/etc/nginx/subscribe/token_blacklist.json');
 define('SETTINGS_JSON',     '/etc/nginx/subscribe/admin_settings.json');
 define('PROTECT_CONF',      '/etc/nginx/subscribe/protect.conf');
+define('SECURITY_CONF',     '/etc/nginx/subscribe/security.conf');
 define('DEPLOY_INFO_FILE',  '/var/log/subscribe/DEPLOY_INFO.txt');
+
+define('DEFAULT_SECURITY_RATE_RPM', 10);
+define('DEFAULT_SECURITY_RATE_BURST', 5);
+define('DEFAULT_SECURITY_WAF_ENABLED', true);
+define('DEFAULT_SECURITY_AUTO_BAN_ENABLED', true);
+define('DEFAULT_SECURITY_AUTO_BAN_RPM', 3);
+define('DEFAULT_SECURITY_AUTO_BAN_BURST', 2);
+define('DEFAULT_SECURITY_WAF_PATTERNS', [
+    '/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode',
+]);
 
 // 读取持久化设置（覆盖环境变量）
 $_sg = [];
@@ -81,6 +92,84 @@ function safe_conf_value(string $s): string {
         json_err('包含非法字符（不允许换行或 { } ; 等字符）');
     }
     return $s;
+}
+
+function normalize_subscribe_path(?string $path): string {
+    $path = trim((string)$path);
+    if ($path === '') return '/api/v1/client/subscribe';
+    if (!str_starts_with($path, '/')) $path = '/' . $path;
+    return rtrim($path, '/') ?: '/';
+}
+
+function settings_bool($value, bool $default): bool {
+    if ($value === null) return $default;
+    if (is_bool($value)) return $value;
+    if (is_int($value)) return $value !== 0;
+    if (is_string($value)) {
+        $v = strtolower(trim($value));
+        if (in_array($v, ['1', 'true', 'yes', 'on'], true)) return true;
+        if (in_array($v, ['0', 'false', 'no', 'off'], true)) return false;
+    }
+    return $default;
+}
+
+function settings_int($value, int $default, int $min, int $max): int {
+    if ($value === null || $value === '') return $default;
+    if (!is_numeric($value)) return $default;
+    $n = (int)$value;
+    if ($n < $min) return $min;
+    if ($n > $max) return $max;
+    return $n;
+}
+
+function normalize_waf_patterns($value): array {
+    if (is_string($value)) {
+        $value = preg_split('/\r\n|\r|\n|\s*,\s*/', $value) ?: [];
+    }
+    if (!is_array($value)) $value = DEFAULT_SECURITY_WAF_PATTERNS;
+    $out = [];
+    foreach ($value as $p) {
+        $p = trim((string)$p);
+        // map 行会写入 nginx 配置；拒绝换行、结构字符与过长模式，避免注入/畸形配置。
+        if ($p === '' || strlen($p) > 128 || preg_match('/[\r\n{};"`]/', $p)) continue;
+        $out[$p] = true;
+    }
+    if (!$out) {
+        foreach (DEFAULT_SECURITY_WAF_PATTERNS as $p) $out[$p] = true;
+    }
+    return array_keys($out);
+}
+
+function normalize_security_settings(array $s): array {
+    $s['security_rate_rpm'] = settings_int($s['security_rate_rpm'] ?? null, DEFAULT_SECURITY_RATE_RPM, 1, 6000);
+    $s['security_rate_burst'] = settings_int($s['security_rate_burst'] ?? null, DEFAULT_SECURITY_RATE_BURST, 0, 10000);
+    $s['security_waf_enabled'] = settings_bool($s['security_waf_enabled'] ?? null, DEFAULT_SECURITY_WAF_ENABLED);
+    $s['security_waf_patterns'] = normalize_waf_patterns($s['security_waf_patterns'] ?? DEFAULT_SECURITY_WAF_PATTERNS);
+    $s['security_auto_ban_enabled'] = settings_bool($s['security_auto_ban_enabled'] ?? null, DEFAULT_SECURITY_AUTO_BAN_ENABLED);
+    $s['security_auto_ban_rpm'] = settings_int($s['security_auto_ban_rpm'] ?? null, DEFAULT_SECURITY_AUTO_BAN_RPM, 1, 6000);
+    $s['security_auto_ban_burst'] = settings_int($s['security_auto_ban_burst'] ?? null, DEFAULT_SECURITY_AUTO_BAN_BURST, 0, 10000);
+    return $s;
+}
+
+function nginx_literal_regex(string $s): string {
+    return str_replace(['\\', '"'], ['\\\\', '\\"'], preg_quote($s, '~'));
+}
+
+function extract_subscribe_token_from_request(string $request, ?string $subscribePath = null): string {
+    // v2board 兼容：/api/v1/client/subscribe?token=xxx
+    if (preg_match('/[?&]token=([^&\s"]+)/i', $request, $m)) {
+        return rawurldecode($m[1]);
+    }
+    // xboard / 自定义路径：在配置 subscribe_path 下取第一个后续路径段作为 token，例如 /clouddy/455...
+    $parts = preg_split('/\s+/', trim($request));
+    $target = $parts[1] ?? '';
+    if ($target === '') return '';
+    $path = parse_url($target, PHP_URL_PATH) ?: '';
+    $base = normalize_subscribe_path($subscribePath ?? ($GLOBALS['_sg']['subscribe_path'] ?? null));
+    if ($base === '/' || $path === $base || !str_starts_with($path, $base . '/')) return '';
+    $rest = substr($path, strlen($base) + 1);
+    $seg = strtok($rest, '/');
+    return $seg ? rawurldecode($seg) : '';
 }
 
 /**

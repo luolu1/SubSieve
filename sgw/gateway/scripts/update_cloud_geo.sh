@@ -70,8 +70,6 @@ done
 cat > "$OUTPUT_TMP" <<EOF
 # 由 update_cloud_geo.sh 自动生成 | $(date '+%Y-%m-%d %H:%M:%S')
 
-limit_req_zone \$binary_remote_addr zone=subscribe_limit:10m rate=20r/m;
-
 geo \$is_cloud_ip {
     default 0;
 EOF

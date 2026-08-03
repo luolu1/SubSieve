@@ -15,6 +15,8 @@ if ($method === 'GET') {
     // 读取今日日志，统计每个黑名单 Token 被哪些 IP 拉取及次数
     $today = date('d/M/Y');
     $tokenIpCount = []; // token => [ip => count]
+    $settings = read_token_settings();
+    $subscribePath = $settings['subscribe_path'] ?? '/api/v1/client/subscribe';
 
     if (file_exists(LOG_FILE)) {
         $handle = fopen(LOG_FILE, 'r');
@@ -24,8 +26,8 @@ if ($method === 'GET') {
                 if (!preg_match('/^(\S+) \[[^\]]+\] "([^"]*)" (\d+)/', $line, $m)) continue;
                 [, $ip, $request, $status] = $m;
                 if ((int)$status !== 200) continue;
-                if (!preg_match('/[?&]token=([^&\s]+)/i', $request, $tm)) continue;
-                $tok = $tm[1];
+                $tok = extract_subscribe_token_from_request($request, $subscribePath);
+                if ($tok === '') continue;
                 if (!isset($blacklistedSet[$tok])) continue;
                 $tokenIpCount[$tok][$ip] = ($tokenIpCount[$tok][$ip] ?? 0) + 1;
             }
@@ -112,4 +114,10 @@ function read_token_blacklist(): array {
 
 function write_token_blacklist(array $entries): bool {
     return file_put_contents(TOKEN_BLACKLIST_JSON, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX) !== false;
+}
+
+function read_token_settings(): array {
+    if (!file_exists(SETTINGS_JSON)) return [];
+    $data = json_decode((string)@file_get_contents(SETTINGS_JSON), true);
+    return is_array($data) ? $data : [];
 }

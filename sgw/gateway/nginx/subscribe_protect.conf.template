@@ -1,5 +1,6 @@
 location ^~ ${SUBSCRIBE_PATH} {
 
+    set $waf_block "";
     if ($whitelist_ip = 1) { set $block_reason ""; }
 
     if ($is_cloud_ip = 1)       { set $block_reason "cloud"; }
@@ -12,8 +13,12 @@ location ^~ ${SUBSCRIBE_PATH} {
     if ($block_reason = "cloud") { return 403 "Forbidden: Cloud IP"; }
     if ($block_reason = "ua")    { return 403 "Forbidden: Invalid Client"; }
 
-    limit_req zone=subscribe_limit burst=5 nodelay;
+    if ($waf_enabled = 1) { set $waf_block $is_bad_request; }
+    limit_req zone=subscribe_limit burst=${SECURITY_RATE_BURST} nodelay;
     limit_req_status 429;
+
+    error_page 418 = @subscribe_waf_block;
+    if ($waf_block = 1) { return 418; }
 
     # 使用变量让 nginx 在运行时通过 http 块的 resolver 动态解析 DNS
     # 避免上游 IP 变动后 nginx 仍使用启动时的缓存结果导致连接失败
@@ -34,4 +39,10 @@ location ^~ ${SUBSCRIBE_PATH} {
 
     add_header Cache-Control no-store;
     add_header X-Subscribe-Filter "active";
+}
+
+location @subscribe_waf_block {
+    limit_req zone=waf_probe_limit burst=${SECURITY_AUTO_BAN_BURST} nodelay;
+    limit_req_status 429;
+    try_files /__subsieve_waf_forbidden__ =403;
 }

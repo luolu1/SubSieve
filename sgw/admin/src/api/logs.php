@@ -151,6 +151,8 @@ $mode    = $_GET['mode'] ?? 'today';
 $today   = date('d/M/Y');
 $maxRows = 3000;
 $logs    = [];
+$settings = read_settings_for_logs();
+$subscribePath = $settings['subscribe_path'] ?? '/api/v1/client/subscribe';
 
 if (file_exists(LOG_FILE)) {
     $handle = fopen(LOG_FILE, 'r');
@@ -166,26 +168,23 @@ if (file_exists(LOG_FILE)) {
         fclose($handle);
 
         foreach ($buffer as $raw) {
-            $entry = parse_line($raw);
+            $entry = parse_line($raw, $subscribePath);
             if ($entry) $logs[] = $entry;
         }
     }
 }
 
-json_out(['ok' => true, 'logs' => $logs, 'date' => $today, 'mode' => $mode]);
+json_out(['ok' => true, 'logs' => $logs, 'date' => $today, 'mode' => $mode, 'subscribe_path' => $subscribePath]);
 
 // ── 解析一行内部格式日志 ──────────────────────────────────────
-function parse_line(string $line): ?array {
+function parse_line(string $line, string $subscribePath): ?array {
     // 内部格式: IP [time] "REQUEST" STATUS BYTES "UA"
     $pat = '/^(\S+) \[([^\]]+)\] "([^"]*)" (\d+) (\S+) "([^"]*)"$/';
     if (!preg_match($pat, $line, $m)) return null;
 
     [, $ip, $time, $request, $status, $bytes, $ua] = $m;
 
-    $token = '';
-    if (preg_match('/[?&]token=([^&\s"]+)/i', $request, $tm)) {
-        $token = $tm[1];
-    }
+    $token = extract_subscribe_token_from_request($request, $subscribePath);
 
     $timeShort = preg_replace('/ \+\d+$/', '', $time);
     if (preg_match('/^(\d{2})\/(\w{3})\/(\d{4}):(\d{2}:\d{2}:\d{2})$/', $timeShort, $dm)) {
@@ -228,4 +227,10 @@ function extract_timestamp(string $line): int {
     }
     $dt = DateTime::createFromFormat('d/M/Y:H:i:s O', $m[1]);
     return $dt ? $dt->getTimestamp() : 0;
+}
+
+function read_settings_for_logs(): array {
+    if (!file_exists(SETTINGS_JSON)) return [];
+    $data = json_decode((string)@file_get_contents(SETTINGS_JSON), true);
+    return is_array($data) ? $data : [];
 }
