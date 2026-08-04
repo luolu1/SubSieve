@@ -31,7 +31,11 @@ define('DEFAULT_SECURITY_AUTO_BAN_RPM', 3);
 define('DEFAULT_SECURITY_AUTO_BAN_BURST', 2);
 define('DEFAULT_SECURITY_RELATION_ENABLED', true);
 define('DEFAULT_SECURITY_RELATION_WINDOW_MINUTES', 10);
+define('DEFAULT_SECURITY_TOKEN_IP_LIMIT_ENABLED', true);
+define('DEFAULT_SECURITY_TOKEN_IP_WINDOW_MINUTES', 10);
 define('DEFAULT_SECURITY_TOKEN_MAX_IPS', 8);
+define('DEFAULT_SECURITY_IP_TOKEN_LIMIT_ENABLED', true);
+define('DEFAULT_SECURITY_IP_TOKEN_WINDOW_MINUTES', 10);
 define('DEFAULT_SECURITY_IP_MAX_TOKENS', 8);
 define('DEFAULT_SECURITY_RELATION_ACTION', 'both');
 define('DEFAULT_SECURITY_WAF_PATTERNS', [
@@ -155,9 +159,16 @@ function normalize_security_settings(array $s): array {
     $s['security_auto_ban_enabled'] = settings_bool($s['security_auto_ban_enabled'] ?? null, DEFAULT_SECURITY_AUTO_BAN_ENABLED);
     $s['security_auto_ban_rpm'] = settings_int($s['security_auto_ban_rpm'] ?? null, DEFAULT_SECURITY_AUTO_BAN_RPM, 1, 6000);
     $s['security_auto_ban_burst'] = settings_int($s['security_auto_ban_burst'] ?? null, DEFAULT_SECURITY_AUTO_BAN_BURST, 0, 10000);
-    $s['security_relation_enabled'] = settings_bool($s['security_relation_enabled'] ?? null, DEFAULT_SECURITY_RELATION_ENABLED);
-    $s['security_relation_window_minutes'] = settings_int($s['security_relation_window_minutes'] ?? null, DEFAULT_SECURITY_RELATION_WINDOW_MINUTES, 1, 1440);
+    // 旧配置兼容：旧 security_relation_enabled/window_minutes 仍保留；当新开关/窗口不存在时作为默认值。
+    $legacyRelationEnabled = settings_bool($s['security_relation_enabled'] ?? null, DEFAULT_SECURITY_RELATION_ENABLED);
+    $legacyRelationWindow = settings_int($s['security_relation_window_minutes'] ?? null, DEFAULT_SECURITY_RELATION_WINDOW_MINUTES, 1, 1440);
+    $s['security_relation_enabled'] = $legacyRelationEnabled;
+    $s['security_relation_window_minutes'] = $legacyRelationWindow;
+    $s['security_token_ip_limit_enabled'] = settings_bool($s['security_token_ip_limit_enabled'] ?? null, $legacyRelationEnabled);
+    $s['security_token_ip_window_minutes'] = settings_int($s['security_token_ip_window_minutes'] ?? null, $legacyRelationWindow, 1, 1440);
     $s['security_token_max_ips'] = settings_int($s['security_token_max_ips'] ?? null, DEFAULT_SECURITY_TOKEN_MAX_IPS, 2, 10000);
+    $s['security_ip_token_limit_enabled'] = settings_bool($s['security_ip_token_limit_enabled'] ?? null, $legacyRelationEnabled);
+    $s['security_ip_token_window_minutes'] = settings_int($s['security_ip_token_window_minutes'] ?? null, $legacyRelationWindow, 1, 1440);
     $s['security_ip_max_tokens'] = settings_int($s['security_ip_max_tokens'] ?? null, DEFAULT_SECURITY_IP_MAX_TOKENS, 2, 10000);
     $action = (string)($s['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION);
     if (!in_array($action, ['blacklist_ip', 'block_token', 'both'], true)) {

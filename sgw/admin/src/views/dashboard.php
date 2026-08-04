@@ -216,6 +216,20 @@ tr:hover td{background:rgba(99,102,241,.04)}
 .summary-stat span{display:block;font-size:11px;color:var(--text3);margin-top:5px}
 .summary-meta{font-size:12px;color:var(--text2);line-height:1.6}
 .action-row{display:flex;gap:8px;flex-wrap:wrap}
+.security-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.security-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.security-card.accent{background:linear-gradient(180deg, color-mix(in srgb, var(--bg3) 90%, var(--accent) 10%), var(--bg3))}
+.security-card-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.security-card-title h3{font-size:14px;font-weight:600;color:var(--text);margin:0}
+.security-card-title span{font-size:11px;color:var(--text3);letter-spacing:.3px;text-transform:uppercase}
+.security-desc{font-size:12px;color:var(--text3);line-height:1.65;margin-bottom:14px}
+.security-savebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px;padding-top:14px;border-top:1px solid var(--border)}
+.security-summary-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.mini-list{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg-input)}
+.mini-list-title{font-size:12px;color:var(--text2);margin-bottom:8px}
+.mini-list ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.mini-list li{font-size:12px;color:var(--text3);line-height:1.45;word-break:break-all}
+@media (max-width:760px){.security-summary-columns{grid-template-columns:1fr}}
 @media (max-width:760px){.form-grid-2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -240,6 +254,9 @@ tr:hover td{background:rgba(99,102,241,.04)}
   </button>
   <button class="nav-item" onclick="switchTab('token_blacklist',this)">
     <span class="nav-icon">🔑</span>Token黑名单
+  </button>
+  <button class="nav-item" onclick="switchTab('security',this)">
+    <span class="nav-icon">🛡️</span>安全设置
   </button>
   <button class="nav-item" onclick="switchTab('settings',this)">
     <span class="nav-icon">⚙</span>系统设置
@@ -569,109 +586,6 @@ tr:hover td{background:rgba(99,102,241,.04)}
           </div>
         </div>
 
-        <!-- 安全设置 -->
-        <div class="card">
-          <div class="card-title">安全设置</div>
-          <div class="form-stack">
-            <div class="form-grid-2">
-              <div>
-                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">订阅访问限频（每分钟请求数）</label>
-                <input class="ip-input" id="cfg-security-rate-rpm" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_rate_rpm'] ?? DEFAULT_SECURITY_RATE_RPM)) ?>" style="width:100%">
-              </div>
-              <div>
-                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">Burst（瞬时放行峰值）</label>
-                <input class="ip-input" id="cfg-security-rate-burst" type="number" min="0" placeholder="5" value="<?= _val((string)($_preSg['security_rate_burst'] ?? '5')) ?>" style="width:100%">
-              </div>
-            </div>
-
-            <label class="check-row">
-              <input id="cfg-security-waf-enabled" type="checkbox" <?= !isset($_preSg['security_waf_enabled']) || $_preSg['security_waf_enabled'] ? 'checked' : '' ?>>
-              <div>
-                <strong>启用 WAF 规则拦截</strong>
-                <span>对命中危险关键词的订阅请求进行拦截。这里是 Nginx 侧规则拦截，不会宣称持久写入系统防火墙黑名单。</span>
-              </div>
-            </label>
-
-            <div>
-              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">危险关键词列表</label>
-              <textarea class="textarea-input" id="cfg-security-waf-patterns" placeholder="每行一个关键词或路径片段&#10;/cgi-bin/&#10;/etc/passwd&#10;wget"><?= _val(implode("\n", $__securityPatterns)) ?></textarea>
-              <div class="apply-hint" style="margin-top:8px">命中后建议直接返回拦截；默认包含 <span class="code-hint">/cgi-bin/</span>、<span class="code-hint">/etc/passwd</span>、<span class="code-hint">wget</span>。</div>
-            </div>
-
-            <label class="check-row">
-              <input id="cfg-security-auto-ban-enabled" type="checkbox" <?= !isset($_preSg['security_auto_ban_enabled']) || $_preSg['security_auto_ban_enabled'] ? 'checked' : '' ?>>
-              <div>
-                <strong>启用恶意探测自动临时抑制</strong>
-                <span>当单个来源在短时间内持续触发恶意探测时，按阈值做临时拦截/限速抑制，用于压制扫描流量；不是永久系统防火墙黑名单。</span>
-              </div>
-            </label>
-
-            <div class="form-grid-2">
-              <div>
-                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">自动抑制阈值（每分钟请求数）</label>
-                <input class="ip-input" id="cfg-security-auto-ban-rpm" type="number" min="1" placeholder="3" value="<?= _val((string)($_preSg['security_auto_ban_rpm'] ?? DEFAULT_SECURITY_AUTO_BAN_RPM)) ?>" style="width:100%">
-              </div>
-              <div>
-                <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">自动抑制 Burst</label>
-                <input class="ip-input" id="cfg-security-auto-ban-burst" type="number" min="0" placeholder="2" value="<?= _val((string)($_preSg['security_auto_ban_burst'] ?? DEFAULT_SECURITY_AUTO_BAN_BURST)) ?>" style="width:100%">
-              </div>
-            </div>
-
-            <div class="subsection form-stack">
-              <label class="check-row">
-                <input id="cfg-security-relation-enabled" type="checkbox" <?= !isset($_preSg['security_relation_enabled']) || $_preSg['security_relation_enabled'] ? 'checked' : '' ?>>
-                <div>
-                  <strong>启用 Token / IP 关系检测</strong>
-                  <span>基于日志在短时间窗口内检测 token ↔ IP 关系：限制“一个 Token 被多 IP 短时间拉取”以及“同一 IP 短时间拉取多个 Token”。超过阈值后可自动拉黑 IP、阻断 Token，或同时处理两者。</span>
-                </div>
-              </label>
-
-              <div class="form-grid-2">
-                <div>
-                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">关系检测时间窗口（分钟）</label>
-                  <input class="ip-input" id="cfg-security-relation-window-minutes" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_relation_window_minutes'] ?? DEFAULT_SECURITY_RELATION_WINDOW_MINUTES)) ?>" style="width:100%">
-                </div>
-                <div>
-                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">处置动作</label>
-                  <select class="ip-input" id="cfg-security-relation-action" style="width:100%;font-family:inherit">
-                    <option value="blacklist_ip" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'blacklist_ip') ? 'selected' : '' ?>>自动拉黑 IP</option>
-                    <option value="block_token" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'block_token') ? 'selected' : '' ?>>自动阻断 Token</option>
-                    <option value="both" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'both') ? 'selected' : '' ?>>同时处理两者</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-grid-2">
-                <div>
-                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 Token 允许的最大 IP 数</label>
-                  <input class="ip-input" id="cfg-security-token-max-ips" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_token_max_ips'] ?? DEFAULT_SECURITY_TOKEN_MAX_IPS)) ?>" style="width:100%">
-                </div>
-                <div>
-                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 IP 允许的最大 Token 数</label>
-                  <input class="ip-input" id="cfg-security-ip-max-tokens" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_ip_max_tokens'] ?? DEFAULT_SECURITY_IP_MAX_TOKENS)) ?>" style="width:100%">
-                </div>
-              </div>
-
-              <div class="summary-box">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-                  <div>
-                    <div style="font-size:12px;color:var(--text2);margin-bottom:2px">关系检测摘要</div>
-                    <div class="apply-hint">进入设置页时会尝试读取摘要，也可手动立即检测 / 应用。</div>
-                  </div>
-                  <div class="action-row">
-                    <button class="mode-btn" onclick="runSecurityMonitor(false)">立即检测</button>
-                    <button class="btn-primary" onclick="runSecurityMonitor(true)">立即检测 / 应用</button>
-                  </div>
-                </div>
-                <div id="security-monitor-summary" class="summary-meta"><span class="loading">加载中…</span></div>
-              </div>
-            </div>
-
-            <div class="apply-hint" style="color:#eab308">⚡ 保存后立即生成 Nginx 安全规则并 reload；该能力为自动临时封禁/拦截/限速，不会写入永久系统防火墙黑名单。</div>
-            <button class="btn-primary" onclick="saveSecuritySettings()">保存安全设置</button>
-          </div>
-        </div>
-
         <!-- SSL 证书信息 -->
         <div class="card">
           <div class="card-title">SSL 证书</div>
@@ -683,6 +597,122 @@ tr:hover td{background:rgba(99,102,241,.04)}
         </div>
 
 
+      </div>
+    </div>
+
+    <!-- ─── 安全设置 ───────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-security">
+      <div class="security-layout">
+        <div class="security-card accent">
+          <div class="security-card-title"><h3>访问限频</h3><span>Rate Limit</span></div>
+          <div class="security-desc">控制订阅接口的基础访问频率，用于压制异常高频拉取。这里是限速与临时抑制，不是永久系统防火墙黑名单。</div>
+          <div class="form-grid-2">
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">每分钟请求数</label>
+              <input class="ip-input" id="cfg-security-rate-rpm" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_rate_rpm'] ?? DEFAULT_SECURITY_RATE_RPM)) ?>" style="width:100%">
+            </div>
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">Burst</label>
+              <input class="ip-input" id="cfg-security-rate-burst" type="number" min="0" placeholder="5" value="<?= _val((string)($_preSg['security_rate_burst'] ?? DEFAULT_SECURITY_RATE_BURST)) ?>" style="width:100%">
+            </div>
+          </div>
+        </div>
+
+        <div class="security-card">
+          <div class="security-card-title"><h3>WAF</h3><span>Keyword Block</span></div>
+          <div class="security-desc">对命中危险关键词的订阅请求进行拦截，适合挡掉常见探测路径与下载器特征。</div>
+          <label class="check-row" style="margin-bottom:12px">
+            <input id="cfg-security-waf-enabled" type="checkbox" <?= !isset($_preSg['security_waf_enabled']) || $_preSg['security_waf_enabled'] ? 'checked' : '' ?>>
+            <div>
+              <strong>启用 WAF 规则拦截</strong>
+              <span>命中危险关键词时阻断当前请求，不宣称持久写入系统防火墙黑名单。</span>
+            </div>
+          </label>
+          <div>
+            <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">危险关键词列表</label>
+            <textarea class="textarea-input" id="cfg-security-waf-patterns" placeholder="每行一个关键词或路径片段&#10;/cgi-bin/&#10;/etc/passwd&#10;wget"><?= _val(implode("\n", $__securityPatterns)) ?></textarea>
+          </div>
+        </div>
+
+        <div class="security-card">
+          <div class="security-card-title"><h3>恶意探测临时抑制</h3><span>Probe Suppression</span></div>
+          <div class="security-desc">当来源在短时间内持续触发恶意探测时，按阈值做临时拦截或限速抑制，用于压制扫描流量。</div>
+          <label class="check-row" style="margin-bottom:12px">
+            <input id="cfg-security-auto-ban-enabled" type="checkbox" <?= !isset($_preSg['security_auto_ban_enabled']) || $_preSg['security_auto_ban_enabled'] ? 'checked' : '' ?>>
+            <div>
+              <strong>启用恶意探测自动临时抑制</strong>
+              <span>对持续命中危险探测的来源做临时抑制，而不是永久拉黑。</span>
+            </div>
+          </label>
+          <div class="form-grid-2">
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">阈值（每分钟请求数）</label>
+              <input class="ip-input" id="cfg-security-auto-ban-rpm" type="number" min="1" placeholder="3" value="<?= _val((string)($_preSg['security_auto_ban_rpm'] ?? DEFAULT_SECURITY_AUTO_BAN_RPM)) ?>" style="width:100%">
+            </div>
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">Burst</label>
+              <input class="ip-input" id="cfg-security-auto-ban-burst" type="number" min="0" placeholder="2" value="<?= _val((string)($_preSg['security_auto_ban_burst'] ?? DEFAULT_SECURITY_AUTO_BAN_BURST)) ?>" style="width:100%">
+            </div>
+          </div>
+        </div>
+
+        <div class="security-card">
+          <div class="security-card-title"><h3>Token 多 IP 检测</h3><span>Token → IP</span></div>
+          <div class="security-desc">基于日志在短时间窗口内检测“一个 Token 被多个 IP 拉取”的情况。超过阈值后自动阻断 Token。</div>
+          <label class="check-row" style="margin-bottom:12px">
+            <input id="cfg-security-token-ip-limit-enabled" type="checkbox" <?= !empty($_preSg['security_token_ip_limit_enabled']) || (!isset($_preSg['security_token_ip_limit_enabled']) && !empty($_preSg['security_relation_enabled'])) ? 'checked' : '' ?>>
+            <div>
+              <strong>启用单个 Token 最大 IP 数限制</strong>
+              <span>超过阈值后，在“立即检测 / 应用”时自动阻断 Token。</span>
+            </div>
+          </label>
+          <div class="form-grid-2">
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">时间窗口（分钟）</label>
+              <input class="ip-input" id="cfg-security-token-ip-window-minutes" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_token_ip_window_minutes'] ?? $_preSg['security_relation_window_minutes'] ?? DEFAULT_SECURITY_TOKEN_IP_WINDOW_MINUTES)) ?>" style="width:100%">
+            </div>
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 Token 最大 IP 数</label>
+              <input class="ip-input" id="cfg-security-token-max-ips" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_token_max_ips'] ?? DEFAULT_SECURITY_TOKEN_MAX_IPS)) ?>" style="width:100%">
+            </div>
+          </div>
+        </div>
+
+        <div class="security-card">
+          <div class="security-card-title"><h3>IP 多 Token 检测</h3><span>IP → Token</span></div>
+          <div class="security-desc">基于日志在短时间窗口内检测“同一 IP 拉取多个 Token”的情况。超过阈值后自动拉黑 IP。</div>
+          <label class="check-row" style="margin-bottom:12px">
+            <input id="cfg-security-ip-token-limit-enabled" type="checkbox" <?= !empty($_preSg['security_ip_token_limit_enabled']) || (!isset($_preSg['security_ip_token_limit_enabled']) && !empty($_preSg['security_relation_enabled'])) ? 'checked' : '' ?>>
+            <div>
+              <strong>启用单个 IP 最大 Token 数限制</strong>
+              <span>超过阈值后，在“立即检测 / 应用”时自动拉黑 IP。</span>
+            </div>
+          </label>
+          <div class="form-grid-2">
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">时间窗口（分钟）</label>
+              <input class="ip-input" id="cfg-security-ip-token-window-minutes" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_ip_token_window_minutes'] ?? $_preSg['security_relation_window_minutes'] ?? DEFAULT_SECURITY_IP_TOKEN_WINDOW_MINUTES)) ?>" style="width:100%">
+            </div>
+            <div>
+              <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 IP 最大 Token 数</label>
+              <input class="ip-input" id="cfg-security-ip-max-tokens" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_ip_max_tokens'] ?? DEFAULT_SECURITY_IP_MAX_TOKENS)) ?>" style="width:100%">
+            </div>
+          </div>
+        </div>
+
+        <div class="security-card accent" style="grid-column:1 / -1">
+          <div class="security-card-title"><h3>检测摘要 / 操作</h3><span>Monitor</span></div>
+          <div class="security-desc">区分展示“Token 多 IP”和“IP 多 Token”两类命中结果，并显示本次新增阻断 Token 与新增拉黑 IP 数量。</div>
+          <div class="action-row" style="margin-bottom:14px">
+            <button class="mode-btn" onclick="runSecurityMonitor(false)">立即检测</button>
+            <button class="btn-primary" onclick="runSecurityMonitor(true)">立即检测 / 应用</button>
+          </div>
+          <div id="security-monitor-summary" class="summary-meta"><span class="loading">加载中…</span></div>
+          <div class="security-savebar">
+            <div class="apply-hint" style="color:#eab308">⚡ 保存后会通过 <code class="code-hint">/api/settings.php</code> 持久化安全字段；旧后端字段仍保留读取 fallback。</div>
+            <button class="btn-primary" onclick="saveSecuritySettings()">保存安全设置</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -751,6 +781,7 @@ const TABS = {
   whitelist:       {title:'IP白名单',    loader:loadWhitelist},
   blacklist:       {title:'IP黑名单',    loader:loadBlacklist},
   token_blacklist: {title:'Token黑名单', loader:loadTokenBlacklist},
+  security:        {title:'安全设置',    loader:loadSecuritySettings},
   settings:        {title:'系统设置',    loader:loadSettings},
 };
 let currentTab = 'logs';
@@ -1854,27 +1885,6 @@ async function loadSettings() {
   if (currentSettings.gateway_port) {
     document.getElementById('cfg-gateway-port').value = currentSettings.gateway_port;
   }
-  document.getElementById('cfg-security-rate-rpm').value = currentSettings.security_rate_rpm ?? 10;
-  document.getElementById('cfg-security-rate-burst').value = currentSettings.security_rate_burst ?? 5;
-  document.getElementById('cfg-security-waf-enabled').checked = !!(currentSettings.security_waf_enabled ?? true);
-  const wafPatterns = Array.isArray(currentSettings.security_waf_patterns)
-    ? currentSettings.security_waf_patterns
-    : (typeof currentSettings.security_waf_patterns === 'string'
-      ? currentSettings.security_waf_patterns.split(/\r?\n|\s*,\s*/)
-      : ['/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode']);
-  document.getElementById('cfg-security-waf-patterns').value = (wafPatterns || [])
-    .map(v => String(v || '').trim())
-    .filter(Boolean)
-    .join('\n') || '/cgi-bin/\n/etc/passwd\nwget\ncurl\nbusybox\nchmod\neval(\nbase64_decode';
-  document.getElementById('cfg-security-auto-ban-enabled').checked = !!(currentSettings.security_auto_ban_enabled ?? true);
-  document.getElementById('cfg-security-auto-ban-rpm').value = currentSettings.security_auto_ban_rpm ?? 3;
-  document.getElementById('cfg-security-auto-ban-burst').value = currentSettings.security_auto_ban_burst ?? 2;
-  document.getElementById('cfg-security-relation-enabled').checked = !!(currentSettings.security_relation_enabled ?? true);
-  document.getElementById('cfg-security-relation-window-minutes').value = currentSettings.security_relation_window_minutes ?? 10;
-  document.getElementById('cfg-security-token-max-ips').value = currentSettings.security_token_max_ips ?? 8;
-  document.getElementById('cfg-security-ip-max-tokens').value = currentSettings.security_ip_max_tokens ?? 8;
-  document.getElementById('cfg-security-relation-action').value = currentSettings.security_relation_action || 'both';
-  loadSecurityMonitorSummary();
   // 显示证书信息
   const cert = data.cert || {};
   const certEl = document.getElementById('cert-info');
@@ -1893,6 +1903,38 @@ async function loadSettings() {
   } else {
     certEl.innerHTML = '<div class="empty" style="color:#eab308">证书存在但无法解析（可能是非标准格式）</div>';
   }
+}
+
+async function loadSecuritySettings() {
+  const data = await apiFetch('/api/settings.php');
+  if (!data.ok) { toast('加载安全设置失败: ' + (data.error||''), 'err'); return; }
+  currentSettings = data.settings || currentSettings || {};
+  document.getElementById('cfg-security-rate-rpm').value = currentSettings.security_rate_rpm ?? 10;
+  document.getElementById('cfg-security-rate-burst').value = currentSettings.security_rate_burst ?? 5;
+  document.getElementById('cfg-security-waf-enabled').checked = !!(currentSettings.security_waf_enabled ?? true);
+  const wafPatterns = Array.isArray(currentSettings.security_waf_patterns)
+    ? currentSettings.security_waf_patterns
+    : (typeof currentSettings.security_waf_patterns === 'string'
+      ? currentSettings.security_waf_patterns.split(/\r?\n|\s*,\s*/)
+      : ['/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode']);
+  document.getElementById('cfg-security-waf-patterns').value = (wafPatterns || []).map(v => String(v || '').trim()).filter(Boolean).join('\n') || '/cgi-bin/\n/etc/passwd\nwget';
+  document.getElementById('cfg-security-auto-ban-enabled').checked = !!(currentSettings.security_auto_ban_enabled ?? true);
+  document.getElementById('cfg-security-auto-ban-rpm').value = currentSettings.security_auto_ban_rpm ?? 3;
+  document.getElementById('cfg-security-auto-ban-burst').value = currentSettings.security_auto_ban_burst ?? 2;
+
+  const legacyEnabled = !!(currentSettings.security_relation_enabled ?? true);
+  const legacyWindow = currentSettings.security_relation_window_minutes ?? 10;
+  const legacyAction = currentSettings.security_relation_action || 'both';
+  const tokenEnabledFallback = legacyEnabled && ['block_token', 'both'].includes(legacyAction);
+  const ipEnabledFallback = legacyEnabled && ['blacklist_ip', 'both'].includes(legacyAction);
+
+  document.getElementById('cfg-security-token-ip-limit-enabled').checked = !!(currentSettings.security_token_ip_limit_enabled ?? tokenEnabledFallback);
+  document.getElementById('cfg-security-token-ip-window-minutes').value = currentSettings.security_token_ip_window_minutes ?? legacyWindow;
+  document.getElementById('cfg-security-token-max-ips').value = currentSettings.security_token_max_ips ?? 8;
+  document.getElementById('cfg-security-ip-token-limit-enabled').checked = !!(currentSettings.security_ip_token_limit_enabled ?? ipEnabledFallback);
+  document.getElementById('cfg-security-ip-token-window-minutes').value = currentSettings.security_ip_token_window_minutes ?? legacyWindow;
+  document.getElementById('cfg-security-ip-max-tokens').value = currentSettings.security_ip_max_tokens ?? 8;
+  loadSecurityMonitorSummary();
 }
 
 
@@ -1985,10 +2027,10 @@ async function saveSecuritySettings() {
   const rateBurst = parseInt(document.getElementById('cfg-security-rate-burst').value.trim(), 10);
   const autoBanRpm = parseInt(document.getElementById('cfg-security-auto-ban-rpm').value.trim(), 10);
   const autoBanBurst = parseInt(document.getElementById('cfg-security-auto-ban-burst').value.trim(), 10);
-  const relationWindow = parseInt(document.getElementById('cfg-security-relation-window-minutes').value.trim(), 10);
+  const tokenIpWindow = parseInt(document.getElementById('cfg-security-token-ip-window-minutes').value.trim(), 10);
   const tokenMaxIps = parseInt(document.getElementById('cfg-security-token-max-ips').value.trim(), 10);
+  const ipTokenWindow = parseInt(document.getElementById('cfg-security-ip-token-window-minutes').value.trim(), 10);
   const ipMaxTokens = parseInt(document.getElementById('cfg-security-ip-max-tokens').value.trim(), 10);
-  const relationAction = document.getElementById('cfg-security-relation-action').value;
   const wafPatterns = document.getElementById('cfg-security-waf-patterns').value
     .split(/\r?\n|,/)
     .map(v => v.trim())
@@ -1998,11 +2040,17 @@ async function saveSecuritySettings() {
   if (isNaN(rateBurst) || rateBurst < 0) { toast('限频 burst 不能小于 0', 'err'); return; }
   if (isNaN(autoBanRpm) || autoBanRpm < 1) { toast('自动抑制阈值需为大于 0 的整数', 'err'); return; }
   if (isNaN(autoBanBurst) || autoBanBurst < 0) { toast('自动抑制 burst 不能小于 0', 'err'); return; }
-  if (isNaN(relationWindow) || relationWindow < 1) { toast('关系检测时间窗口需为大于 0 的整数', 'err'); return; }
+  if (isNaN(tokenIpWindow) || tokenIpWindow < 1) { toast('Token 多 IP 检测时间窗口需为大于 0 的整数', 'err'); return; }
   if (isNaN(tokenMaxIps) || tokenMaxIps < 2) { toast('单个 Token 最大 IP 数至少为 2', 'err'); return; }
+  if (isNaN(ipTokenWindow) || ipTokenWindow < 1) { toast('IP 多 Token 检测时间窗口需为大于 0 的整数', 'err'); return; }
   if (isNaN(ipMaxTokens) || ipMaxTokens < 2) { toast('单个 IP 最大 Token 数至少为 2', 'err'); return; }
-  if (!['blacklist_ip', 'block_token', 'both'].includes(relationAction)) { toast('关系检测处置动作无效', 'err'); return; }
   if (!wafPatterns.length) { toast('请至少保留一条危险关键词', 'err'); return; }
+
+  const tokenRuleEnabled = document.getElementById('cfg-security-token-ip-limit-enabled').checked;
+  const ipRuleEnabled = document.getElementById('cfg-security-ip-token-limit-enabled').checked;
+  const legacyEnabled = tokenRuleEnabled || ipRuleEnabled;
+  const legacyAction = tokenRuleEnabled && ipRuleEnabled ? 'both' : tokenRuleEnabled ? 'block_token' : ipRuleEnabled ? 'blacklist_ip' : 'both';
+  const legacyWindow = Math.max(tokenIpWindow, ipTokenWindow);
 
   const body = {
     security_rate_rpm: rateRpm,
@@ -2012,11 +2060,15 @@ async function saveSecuritySettings() {
     security_auto_ban_enabled: document.getElementById('cfg-security-auto-ban-enabled').checked,
     security_auto_ban_rpm: autoBanRpm,
     security_auto_ban_burst: autoBanBurst,
-    security_relation_enabled: document.getElementById('cfg-security-relation-enabled').checked,
-    security_relation_window_minutes: relationWindow,
+    security_token_ip_limit_enabled: tokenRuleEnabled,
+    security_token_ip_window_minutes: tokenIpWindow,
     security_token_max_ips: tokenMaxIps,
+    security_ip_token_limit_enabled: ipRuleEnabled,
+    security_ip_token_window_minutes: ipTokenWindow,
     security_ip_max_tokens: ipMaxTokens,
-    security_relation_action: relationAction,
+    security_relation_enabled: legacyEnabled,
+    security_relation_window_minutes: legacyWindow,
+    security_relation_action: legacyAction,
   };
 
   const d = await apiFetch('/api/settings.php', {
@@ -2025,7 +2077,7 @@ async function saveSecuritySettings() {
   });
   if (d.ok) {
     toast('✅ 安全设置已保存');
-    loadSettings();
+    loadSecuritySettings();
   } else {
     toast(d.error || '保存失败', 'err');
   }
@@ -2047,28 +2099,33 @@ async function loadSecurityMonitorSummary() {
 function renderSecurityMonitorSummary(summary = {}) {
   const box = document.getElementById('security-monitor-summary');
   if (!box) return;
-  const tokenCount = Number(summary.violation_token_count || 0);
-  const ipCount = Number(summary.violation_ip_count || 0);
+  const tokenCount = Number(summary.violation_token_count || (summary.token_violations || []).length || 0);
+  const ipCount = Number(summary.violation_ip_count || (summary.ip_violations || []).length || 0);
   const blacklistAdded = Number(summary.blacklist_added || 0);
   const tokenBlockAdded = Number(summary.token_block_added || 0);
-  const relationEnabled = summary.relation_enabled;
-  const actionMap = {
-    blacklist_ip: '自动拉黑 IP',
-    block_token: '自动阻断 Token',
-    both: '同时处理两者',
-  };
+  const tokenRows = (summary.token_violations || summary.violation_tokens || []).slice(0, 5);
+  const ipRows = (summary.ip_violations || summary.violation_ips || []).slice(0, 5);
   box.innerHTML = `
     <div class="summary-grid">
-      <div class="summary-stat"><strong>${tokenCount}</strong><span>违规 Token 数</span></div>
-      <div class="summary-stat"><strong>${ipCount}</strong><span>违规 IP 数</span></div>
+      <div class="summary-stat"><strong>${tokenCount}</strong><span>Token 多 IP 命中数</span></div>
+      <div class="summary-stat"><strong>${ipCount}</strong><span>IP 多 Token 命中数</span></div>
       <div class="summary-stat"><strong>${blacklistAdded}</strong><span>新增拉黑 IP</span></div>
       <div class="summary-stat"><strong>${tokenBlockAdded}</strong><span>新增阻断 Token</span></div>
     </div>
     <div class="summary-meta">
-      时间窗口：<span class="code-hint">${esc(String(summary.window_minutes ?? currentSettings.security_relation_window_minutes ?? 10))} 分钟</span>
-      &nbsp;·&nbsp;处置动作：<span class="code-hint">${esc(actionMap[summary.action] || '未设置')}</span>
-      &nbsp;·&nbsp;关系检测：<span class="code-hint">${relationEnabled ? '已启用' : '未启用'}</span>
+      Token 多 IP 时间窗口：<span class="code-hint">${esc(String(summary.token_ip_window_minutes ?? currentSettings.security_token_ip_window_minutes ?? currentSettings.security_relation_window_minutes ?? 10))} 分钟</span>
+      &nbsp;·&nbsp;IP 多 Token 时间窗口：<span class="code-hint">${esc(String(summary.ip_token_window_minutes ?? currentSettings.security_ip_token_window_minutes ?? currentSettings.security_relation_window_minutes ?? 10))} 分钟</span>
       ${summary.message ? `<br>${esc(summary.message)}` : ''}
+    </div>
+    <div class="security-summary-columns">
+      <div class="mini-list">
+        <div class="mini-list-title">Token 多 IP 命中明细</div>
+        <ul>${tokenRows.length ? tokenRows.map(r => `<li><strong style="color:var(--text)">${esc((r.token || '').slice(0,16))}${(r.token || '').length > 16 ? '…' : ''}</strong> · ${Number(r.ip_count || (r.ips || []).length || 0)} 个 IP</li>`).join('') : '<li>当前时间窗口内未发现命中</li>'}</ul>
+      </div>
+      <div class="mini-list">
+        <div class="mini-list-title">IP 多 Token 命中明细</div>
+        <ul>${ipRows.length ? ipRows.map(r => `<li><strong style="color:var(--text)">${esc(r.ip || '')}</strong> · ${Number(r.token_count || (r.tokens || []).length || 0)} 个 Token</li>`).join('') : '<li>当前时间窗口内未发现命中</li>'}</ul>
+      </div>
     </div>`;
 }
 

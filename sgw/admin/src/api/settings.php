@@ -95,26 +95,44 @@ if ($method === 'POST') {
 
     // ── 安全设置 ───────────────────────────────────────────────
     $securityChanged = false;
-    foreach (['security_rate_rpm','security_rate_burst','security_waf_enabled','security_waf_patterns','security_auto_ban_enabled','security_auto_ban_rpm','security_auto_ban_burst','security_relation_enabled','security_relation_window_minutes','security_token_max_ips','security_ip_max_tokens','security_relation_action'] as $k) {
+    foreach (['security_rate_rpm','security_rate_burst','security_waf_enabled','security_waf_patterns','security_auto_ban_enabled','security_auto_ban_rpm','security_auto_ban_burst','security_relation_enabled','security_relation_window_minutes','security_relation_action','security_token_ip_limit_enabled','security_token_ip_window_minutes','security_token_max_ips','security_ip_token_limit_enabled','security_ip_token_window_minutes','security_ip_max_tokens'] as $k) {
         if (array_key_exists($k, $body)) { $securityChanged = true; break; }
     }
     if ($securityChanged) {
-        $s['security_rate_rpm'] = require_int_range($body['security_rate_rpm'] ?? null, '订阅访问限频', 1, 6000);
-        $s['security_rate_burst'] = require_int_range($body['security_rate_burst'] ?? null, '订阅访问 burst', 0, 10000);
-        $s['security_waf_enabled'] = settings_bool($body['security_waf_enabled'] ?? null, DEFAULT_SECURITY_WAF_ENABLED);
-        $s['security_waf_patterns'] = normalize_waf_patterns($body['security_waf_patterns'] ?? DEFAULT_SECURITY_WAF_PATTERNS);
-        $s['security_auto_ban_enabled'] = settings_bool($body['security_auto_ban_enabled'] ?? null, DEFAULT_SECURITY_AUTO_BAN_ENABLED);
-        $s['security_auto_ban_rpm'] = require_int_range($body['security_auto_ban_rpm'] ?? null, '自动临时封禁/拦截阈值', 1, 6000);
-        $s['security_auto_ban_burst'] = require_int_range($body['security_auto_ban_burst'] ?? null, '自动临时封禁/拦截 burst', 0, 10000);
-        $s['security_relation_enabled'] = settings_bool($body['security_relation_enabled'] ?? null, DEFAULT_SECURITY_RELATION_ENABLED);
-        $s['security_relation_window_minutes'] = require_int_range($body['security_relation_window_minutes'] ?? null, '关系检测时间窗口', 1, 1440);
-        $s['security_token_max_ips'] = require_int_range($body['security_token_max_ips'] ?? null, '单个 Token 最大 IP 数', 2, 10000);
-        $s['security_ip_max_tokens'] = require_int_range($body['security_ip_max_tokens'] ?? null, '单个 IP 最大 Token 数', 2, 10000);
-        $action = (string)($body['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION);
-        if (!in_array($action, ['blacklist_ip', 'block_token', 'both'], true)) {
-            json_err('关系检测处置动作无效');
+        $s['security_rate_rpm'] = require_int_range($body['security_rate_rpm'] ?? ($s['security_rate_rpm'] ?? DEFAULT_SECURITY_RATE_RPM), '订阅访问限频', 1, 6000);
+        $s['security_rate_burst'] = require_int_range($body['security_rate_burst'] ?? ($s['security_rate_burst'] ?? DEFAULT_SECURITY_RATE_BURST), '订阅访问 burst', 0, 10000);
+        $s['security_waf_enabled'] = settings_bool($body['security_waf_enabled'] ?? null, settings_bool($s['security_waf_enabled'] ?? null, DEFAULT_SECURITY_WAF_ENABLED));
+        $s['security_waf_patterns'] = normalize_waf_patterns($body['security_waf_patterns'] ?? ($s['security_waf_patterns'] ?? DEFAULT_SECURITY_WAF_PATTERNS));
+        $s['security_auto_ban_enabled'] = settings_bool($body['security_auto_ban_enabled'] ?? null, settings_bool($s['security_auto_ban_enabled'] ?? null, DEFAULT_SECURITY_AUTO_BAN_ENABLED));
+        $s['security_auto_ban_rpm'] = require_int_range($body['security_auto_ban_rpm'] ?? ($s['security_auto_ban_rpm'] ?? DEFAULT_SECURITY_AUTO_BAN_RPM), '自动临时封禁/拦截阈值', 1, 6000);
+        $s['security_auto_ban_burst'] = require_int_range($body['security_auto_ban_burst'] ?? ($s['security_auto_ban_burst'] ?? DEFAULT_SECURITY_AUTO_BAN_BURST), '自动临时封禁/拦截 burst', 0, 10000);
+
+        // 旧字段仅用于兼容读取/保存，不再驱动主要处置逻辑。
+        if (array_key_exists('security_relation_enabled', $body)) {
+            $s['security_relation_enabled'] = settings_bool($body['security_relation_enabled'], DEFAULT_SECURITY_RELATION_ENABLED);
         }
-        $s['security_relation_action'] = $action;
+        if (array_key_exists('security_relation_window_minutes', $body)) {
+            $s['security_relation_window_minutes'] = require_int_range($body['security_relation_window_minutes'], '关系检测时间窗口', 1, 1440);
+        }
+        if (array_key_exists('security_relation_action', $body)) {
+            $action = (string)$body['security_relation_action'];
+            if (!in_array($action, ['blacklist_ip', 'block_token', 'both'], true)) {
+                json_err('关系检测处置动作无效');
+            }
+            $s['security_relation_action'] = $action;
+        }
+
+        $legacyEnabledDefault = settings_bool($body['security_relation_enabled'] ?? ($s['security_relation_enabled'] ?? null), DEFAULT_SECURITY_RELATION_ENABLED);
+        $legacyWindowDefault = isset($body['security_relation_window_minutes'])
+            ? (int)$body['security_relation_window_minutes']
+            : (int)($s['security_relation_window_minutes'] ?? DEFAULT_SECURITY_RELATION_WINDOW_MINUTES);
+
+        $s['security_token_ip_limit_enabled'] = settings_bool($body['security_token_ip_limit_enabled'] ?? null, $legacyEnabledDefault);
+        $s['security_token_ip_window_minutes'] = require_int_range($body['security_token_ip_window_minutes'] ?? $legacyWindowDefault, 'Token 多 IP 检测窗口', 1, 1440);
+        $s['security_token_max_ips'] = require_int_range($body['security_token_max_ips'] ?? ($s['security_token_max_ips'] ?? DEFAULT_SECURITY_TOKEN_MAX_IPS), '单个 Token 最大 IP 数', 2, 10000);
+        $s['security_ip_token_limit_enabled'] = settings_bool($body['security_ip_token_limit_enabled'] ?? null, $legacyEnabledDefault);
+        $s['security_ip_token_window_minutes'] = require_int_range($body['security_ip_token_window_minutes'] ?? $legacyWindowDefault, 'IP 多 Token 检测窗口', 1, 1440);
+        $s['security_ip_max_tokens'] = require_int_range($body['security_ip_max_tokens'] ?? ($s['security_ip_max_tokens'] ?? DEFAULT_SECURITY_IP_MAX_TOKENS), '单个 IP 最大 Token 数', 2, 10000);
     }
 
     $s = normalize_security_settings($s);
