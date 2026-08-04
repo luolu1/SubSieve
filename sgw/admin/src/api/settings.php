@@ -95,7 +95,7 @@ if ($method === 'POST') {
 
     // ── 安全设置 ───────────────────────────────────────────────
     $securityChanged = false;
-    foreach (['security_rate_rpm','security_rate_burst','security_waf_enabled','security_waf_patterns','security_auto_ban_enabled','security_auto_ban_rpm','security_auto_ban_burst'] as $k) {
+    foreach (['security_rate_rpm','security_rate_burst','security_waf_enabled','security_waf_patterns','security_auto_ban_enabled','security_auto_ban_rpm','security_auto_ban_burst','security_relation_enabled','security_relation_window_minutes','security_token_max_ips','security_ip_max_tokens','security_relation_action'] as $k) {
         if (array_key_exists($k, $body)) { $securityChanged = true; break; }
     }
     if ($securityChanged) {
@@ -106,6 +106,15 @@ if ($method === 'POST') {
         $s['security_auto_ban_enabled'] = settings_bool($body['security_auto_ban_enabled'] ?? null, DEFAULT_SECURITY_AUTO_BAN_ENABLED);
         $s['security_auto_ban_rpm'] = require_int_range($body['security_auto_ban_rpm'] ?? null, '自动临时封禁/拦截阈值', 1, 6000);
         $s['security_auto_ban_burst'] = require_int_range($body['security_auto_ban_burst'] ?? null, '自动临时封禁/拦截 burst', 0, 10000);
+        $s['security_relation_enabled'] = settings_bool($body['security_relation_enabled'] ?? null, DEFAULT_SECURITY_RELATION_ENABLED);
+        $s['security_relation_window_minutes'] = require_int_range($body['security_relation_window_minutes'] ?? null, '关系检测时间窗口', 1, 1440);
+        $s['security_token_max_ips'] = require_int_range($body['security_token_max_ips'] ?? null, '单个 Token 最大 IP 数', 2, 10000);
+        $s['security_ip_max_tokens'] = require_int_range($body['security_ip_max_tokens'] ?? null, '单个 IP 最大 Token 数', 2, 10000);
+        $action = (string)($body['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION);
+        if (!in_array($action, ['blacklist_ip', 'block_token', 'both'], true)) {
+            json_err('关系检测处置动作无效');
+        }
+        $s['security_relation_action'] = $action;
     }
 
     $s = normalize_security_settings($s);
@@ -199,7 +208,9 @@ function write_security_conf(array $s): bool {
     $lines[] = '}';
     $lines[] = 'map "' . $wafEnabled . '" $waf_enabled { default ' . $wafEnabled . '; }';
     $lines[] = '';
-    return file_put_contents(SECURITY_CONF, implode("\n", $lines), LOCK_EX) !== false;
+    $r1 = file_put_contents(SECURITY_CONF, implode("\n", $lines), LOCK_EX) !== false;
+    $r2 = write_token_block_conf(read_security_token_blocks(), $s['subscribe_path'] ?? null);
+    return $r1 && $r2;
 }
 
 /**
@@ -224,6 +235,8 @@ location ^~ $subscribePath {
 
     if (\$block_reason = "cloud") { return 403 "Forbidden: Cloud IP"; }
     if (\$block_reason = "ua")    { return 403 "Forbidden: Invalid Client"; }
+
+    if (\$is_blocked_token = 1) { return 403 "Forbidden: Blocked Token"; }
 
     if (\$waf_enabled = 1) { set \$waf_block \$is_bad_request; }
     limit_req zone=subscribe_limit burst=$rateBurst nodelay;

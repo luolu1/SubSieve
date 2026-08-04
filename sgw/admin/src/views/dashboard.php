@@ -208,6 +208,14 @@ tr:hover td{background:rgba(99,102,241,.04)}
 .code-hint{display:inline-block;font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px}
 .textarea-input{background:var(--bg-input);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.6;outline:none;min-height:110px;width:100%;resize:vertical}
 .textarea-input:focus{border-color:var(--accent)}
+.subsection{padding-top:14px;border-top:1px solid var(--border)}
+.summary-box{border:1px solid var(--border);background:linear-gradient(180deg, rgba(99,102,241,.06), rgba(99,102,241,.02));border-radius:10px;padding:14px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px}
+.summary-stat{padding:10px 12px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border)}
+.summary-stat strong{display:block;font-size:18px;color:var(--text);line-height:1.1}
+.summary-stat span{display:block;font-size:11px;color:var(--text3);margin-top:5px}
+.summary-meta{font-size:12px;color:var(--text2);line-height:1.6}
+.action-row{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:760px){.form-grid-2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -609,6 +617,56 @@ tr:hover td{background:rgba(99,102,241,.04)}
               </div>
             </div>
 
+            <div class="subsection form-stack">
+              <label class="check-row">
+                <input id="cfg-security-relation-enabled" type="checkbox" <?= !isset($_preSg['security_relation_enabled']) || $_preSg['security_relation_enabled'] ? 'checked' : '' ?>>
+                <div>
+                  <strong>启用 Token / IP 关系检测</strong>
+                  <span>基于日志在短时间窗口内检测 token ↔ IP 关系：限制“一个 Token 被多 IP 短时间拉取”以及“同一 IP 短时间拉取多个 Token”。超过阈值后可自动拉黑 IP、阻断 Token，或同时处理两者。</span>
+                </div>
+              </label>
+
+              <div class="form-grid-2">
+                <div>
+                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">关系检测时间窗口（分钟）</label>
+                  <input class="ip-input" id="cfg-security-relation-window-minutes" type="number" min="1" placeholder="10" value="<?= _val((string)($_preSg['security_relation_window_minutes'] ?? DEFAULT_SECURITY_RELATION_WINDOW_MINUTES)) ?>" style="width:100%">
+                </div>
+                <div>
+                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">处置动作</label>
+                  <select class="ip-input" id="cfg-security-relation-action" style="width:100%;font-family:inherit">
+                    <option value="blacklist_ip" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'blacklist_ip') ? 'selected' : '' ?>>自动拉黑 IP</option>
+                    <option value="block_token" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'block_token') ? 'selected' : '' ?>>自动阻断 Token</option>
+                    <option value="both" <?= (($_preSg['security_relation_action'] ?? DEFAULT_SECURITY_RELATION_ACTION) === 'both') ? 'selected' : '' ?>>同时处理两者</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div>
+                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 Token 允许的最大 IP 数</label>
+                  <input class="ip-input" id="cfg-security-token-max-ips" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_token_max_ips'] ?? DEFAULT_SECURITY_TOKEN_MAX_IPS)) ?>" style="width:100%">
+                </div>
+                <div>
+                  <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">单个 IP 允许的最大 Token 数</label>
+                  <input class="ip-input" id="cfg-security-ip-max-tokens" type="number" min="2" placeholder="8" value="<?= _val((string)($_preSg['security_ip_max_tokens'] ?? DEFAULT_SECURITY_IP_MAX_TOKENS)) ?>" style="width:100%">
+                </div>
+              </div>
+
+              <div class="summary-box">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+                  <div>
+                    <div style="font-size:12px;color:var(--text2);margin-bottom:2px">关系检测摘要</div>
+                    <div class="apply-hint">进入设置页时会尝试读取摘要，也可手动立即检测 / 应用。</div>
+                  </div>
+                  <div class="action-row">
+                    <button class="mode-btn" onclick="runSecurityMonitor(false)">立即检测</button>
+                    <button class="btn-primary" onclick="runSecurityMonitor(true)">立即检测 / 应用</button>
+                  </div>
+                </div>
+                <div id="security-monitor-summary" class="summary-meta"><span class="loading">加载中…</span></div>
+              </div>
+            </div>
+
             <div class="apply-hint" style="color:#eab308">⚡ 保存后立即生成 Nginx 安全规则并 reload；该能力为自动临时封禁/拦截/限速，不会写入永久系统防火墙黑名单。</div>
             <button class="btn-primary" onclick="saveSecuritySettings()">保存安全设置</button>
           </div>
@@ -655,6 +713,7 @@ let uaWlLimit = 50;      // UA白名单显示数量
 let allUaBlEntries = []; // UA封禁列表完整数据缓存
 let allUaWlEntries = []; // UA白名单完整数据缓存
 let autoTimer, countdown = 300;
+let securityMonitorSummary = null;
 
 // ── 主题 ──────────────────────────────────────────────────────
 const THEMES = ['dark','light','auto'];
@@ -1810,6 +1869,12 @@ async function loadSettings() {
   document.getElementById('cfg-security-auto-ban-enabled').checked = !!(currentSettings.security_auto_ban_enabled ?? true);
   document.getElementById('cfg-security-auto-ban-rpm').value = currentSettings.security_auto_ban_rpm ?? 3;
   document.getElementById('cfg-security-auto-ban-burst').value = currentSettings.security_auto_ban_burst ?? 2;
+  document.getElementById('cfg-security-relation-enabled').checked = !!(currentSettings.security_relation_enabled ?? true);
+  document.getElementById('cfg-security-relation-window-minutes').value = currentSettings.security_relation_window_minutes ?? 10;
+  document.getElementById('cfg-security-token-max-ips').value = currentSettings.security_token_max_ips ?? 8;
+  document.getElementById('cfg-security-ip-max-tokens').value = currentSettings.security_ip_max_tokens ?? 8;
+  document.getElementById('cfg-security-relation-action').value = currentSettings.security_relation_action || 'both';
+  loadSecurityMonitorSummary();
   // 显示证书信息
   const cert = data.cert || {};
   const certEl = document.getElementById('cert-info');
@@ -1920,6 +1985,10 @@ async function saveSecuritySettings() {
   const rateBurst = parseInt(document.getElementById('cfg-security-rate-burst').value.trim(), 10);
   const autoBanRpm = parseInt(document.getElementById('cfg-security-auto-ban-rpm').value.trim(), 10);
   const autoBanBurst = parseInt(document.getElementById('cfg-security-auto-ban-burst').value.trim(), 10);
+  const relationWindow = parseInt(document.getElementById('cfg-security-relation-window-minutes').value.trim(), 10);
+  const tokenMaxIps = parseInt(document.getElementById('cfg-security-token-max-ips').value.trim(), 10);
+  const ipMaxTokens = parseInt(document.getElementById('cfg-security-ip-max-tokens').value.trim(), 10);
+  const relationAction = document.getElementById('cfg-security-relation-action').value;
   const wafPatterns = document.getElementById('cfg-security-waf-patterns').value
     .split(/\r?\n|,/)
     .map(v => v.trim())
@@ -1929,6 +1998,10 @@ async function saveSecuritySettings() {
   if (isNaN(rateBurst) || rateBurst < 0) { toast('限频 burst 不能小于 0', 'err'); return; }
   if (isNaN(autoBanRpm) || autoBanRpm < 1) { toast('自动抑制阈值需为大于 0 的整数', 'err'); return; }
   if (isNaN(autoBanBurst) || autoBanBurst < 0) { toast('自动抑制 burst 不能小于 0', 'err'); return; }
+  if (isNaN(relationWindow) || relationWindow < 1) { toast('关系检测时间窗口需为大于 0 的整数', 'err'); return; }
+  if (isNaN(tokenMaxIps) || tokenMaxIps < 2) { toast('单个 Token 最大 IP 数至少为 2', 'err'); return; }
+  if (isNaN(ipMaxTokens) || ipMaxTokens < 2) { toast('单个 IP 最大 Token 数至少为 2', 'err'); return; }
+  if (!['blacklist_ip', 'block_token', 'both'].includes(relationAction)) { toast('关系检测处置动作无效', 'err'); return; }
   if (!wafPatterns.length) { toast('请至少保留一条危险关键词', 'err'); return; }
 
   const body = {
@@ -1939,6 +2012,11 @@ async function saveSecuritySettings() {
     security_auto_ban_enabled: document.getElementById('cfg-security-auto-ban-enabled').checked,
     security_auto_ban_rpm: autoBanRpm,
     security_auto_ban_burst: autoBanBurst,
+    security_relation_enabled: document.getElementById('cfg-security-relation-enabled').checked,
+    security_relation_window_minutes: relationWindow,
+    security_token_max_ips: tokenMaxIps,
+    security_ip_max_tokens: ipMaxTokens,
+    security_relation_action: relationAction,
   };
 
   const d = await apiFetch('/api/settings.php', {
@@ -1950,6 +2028,68 @@ async function saveSecuritySettings() {
     loadSettings();
   } else {
     toast(d.error || '保存失败', 'err');
+  }
+}
+
+async function loadSecurityMonitorSummary() {
+  const box = document.getElementById('security-monitor-summary');
+  if (!box) return;
+  box.innerHTML = '<span class="loading">加载中…</span>';
+  const d = await apiFetch('/api/security_monitor.php');
+  if (!d.ok) {
+    box.innerHTML = `<div class="empty">摘要接口暂不可用：${esc(d.error || '未返回有效数据')}</div>`;
+    return;
+  }
+  securityMonitorSummary = d.summary || {};
+  renderSecurityMonitorSummary(securityMonitorSummary);
+}
+
+function renderSecurityMonitorSummary(summary = {}) {
+  const box = document.getElementById('security-monitor-summary');
+  if (!box) return;
+  const tokenCount = Number(summary.violation_token_count || 0);
+  const ipCount = Number(summary.violation_ip_count || 0);
+  const blacklistAdded = Number(summary.blacklist_added || 0);
+  const tokenBlockAdded = Number(summary.token_block_added || 0);
+  const relationEnabled = summary.relation_enabled;
+  const actionMap = {
+    blacklist_ip: '自动拉黑 IP',
+    block_token: '自动阻断 Token',
+    both: '同时处理两者',
+  };
+  box.innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-stat"><strong>${tokenCount}</strong><span>违规 Token 数</span></div>
+      <div class="summary-stat"><strong>${ipCount}</strong><span>违规 IP 数</span></div>
+      <div class="summary-stat"><strong>${blacklistAdded}</strong><span>新增拉黑 IP</span></div>
+      <div class="summary-stat"><strong>${tokenBlockAdded}</strong><span>新增阻断 Token</span></div>
+    </div>
+    <div class="summary-meta">
+      时间窗口：<span class="code-hint">${esc(String(summary.window_minutes ?? currentSettings.security_relation_window_minutes ?? 10))} 分钟</span>
+      &nbsp;·&nbsp;处置动作：<span class="code-hint">${esc(actionMap[summary.action] || '未设置')}</span>
+      &nbsp;·&nbsp;关系检测：<span class="code-hint">${relationEnabled ? '已启用' : '未启用'}</span>
+      ${summary.message ? `<br>${esc(summary.message)}` : ''}
+    </div>`;
+}
+
+async function runSecurityMonitor(applyNow) {
+  const endpoint = '/api/security_monitor.php';
+  const d = await apiFetch(endpoint, {
+    method: applyNow ? 'POST' : 'GET',
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    body: applyNow ? JSON.stringify({apply: true}) : undefined,
+  });
+  if (!d.ok) {
+    toast((applyNow ? '检测 / 应用失败：' : '检测失败：') + (d.error || '接口不可用'), 'err');
+    return;
+  }
+  securityMonitorSummary = d.summary || {};
+  renderSecurityMonitorSummary(securityMonitorSummary);
+  const s = securityMonitorSummary;
+  toast(`✅ 违规 Token ${s.violation_token_count || 0} 个，违规 IP ${s.violation_ip_count || 0} 个，新增拉黑 ${s.blacklist_added || 0} 个，新增阻断 ${s.token_block_added || 0} 个`);
+  if (applyNow) {
+    loadBlacklist();
+    loadTokenBlacklist();
   }
 }
 

@@ -13,6 +13,8 @@ location ^~ ${SUBSCRIBE_PATH} {
     if ($block_reason = "cloud") { return 403 "Forbidden: Cloud IP"; }
     if ($block_reason = "ua")    { return 403 "Forbidden: Invalid Client"; }
 
+    if ($is_blocked_token = 1) { return 403 "Forbidden: Blocked Token"; }
+
     if ($waf_enabled = 1) { set $waf_block $is_bad_request; }
     limit_req zone=subscribe_limit burst=${SECURITY_RATE_BURST} nodelay;
     limit_req_status 429;
