@@ -190,6 +190,26 @@ write_security_conf() {
     export SECURITY_AUTO_BAN_BURST="$auto_burst"
 }
 
+migrate_legacy_cloud_geo_conf() {
+    local conf="/etc/nginx/subscribe/cloud_geo.conf"
+    local tmp="${conf}.migrate"
+
+    [[ -f "$conf" ]] || return 0
+    if ! grep -q 'zone=subscribe_limit' "$conf"; then
+        return 0
+    fi
+
+    log "检测到旧版 cloud_geo.conf 内含 subscribe_limit，正在迁移到 security.conf 管理..."
+    while IFS= read -r line; do
+        case "$line" in
+            *limit_req_zone*zone=subscribe_limit*) continue ;;
+            *) printf '%s\n' "$line" ;;
+        esac
+    done < "$conf" > "$tmp"
+    mv "$tmp" "$conf"
+    chmod 666 "$conf"
+}
+
 log "生成 protect.conf ..."
 write_security_conf
 envsubst '${V2B_BACKEND} ${V2B_HOST} ${SUBSCRIBE_PATH} ${SECURITY_RATE_BURST} ${SECURITY_AUTO_BAN_BURST}' \
@@ -245,6 +265,7 @@ if [[ ! -f /etc/nginx/subscribe/cloud_geo.conf ]]; then
 else
     log "cloud_geo.conf 已存在，跳过初次拉取"
 fi
+migrate_legacy_cloud_geo_conf
 
 # 每周定时更新
 (
