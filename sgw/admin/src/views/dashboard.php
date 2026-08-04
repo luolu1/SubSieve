@@ -78,12 +78,12 @@ $__securityPatterns = array_values(array_filter(array_map(static fn($v) => trim(
 body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif;display:flex;min-height:100vh}
 
 /* Sidebar */
-.sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;padding:20px 12px}
-.logo{font-size:15px;font-weight:600;color:var(--text);padding:8px 10px 24px}
+.sidebar{width:216px;background:linear-gradient(180deg,var(--bg2),color-mix(in srgb, var(--bg2) 82%, var(--bg3) 18%));border-right:1px solid var(--border);box-shadow:inset -1px 0 0 rgba(255,255,255,.02);flex-shrink:0;display:flex;flex-direction:column;padding:18px 12px 14px;gap:4px}
+.logo{font-size:15px;font-weight:700;color:var(--text);padding:10px 12px 22px;letter-spacing:.2px}
 .logo span{color:var(--accent)}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;transition:all .15s;border:none;background:none;width:100%;text-align:left}
-.nav-item:hover{background:var(--border);color:var(--text)}
-.nav-item.active{background:var(--border);color:var(--accent)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .18s ease;border:1px solid transparent;background:none;width:100%;text-align:left}
+.nav-item:hover{background:color-mix(in srgb, var(--accent) 10%, var(--border) 90%);border-color:color-mix(in srgb, var(--accent) 16%, var(--border2) 84%);color:var(--text)}
+.nav-item.active{background:color-mix(in srgb, var(--accent) 14%, var(--bg3) 86%);color:var(--text);border-color:color-mix(in srgb, var(--accent) 40%, var(--border2) 60%);box-shadow:0 10px 24px rgba(99,102,241,.14)}
 .nav-icon{font-size:15px;width:18px;text-align:center}
 .sidebar-bottom{margin-top:auto}
 .logout{color:#ef4444!important}
@@ -91,25 +91,25 @@ body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif;d
 
 /* Main */
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
-.topbar-title{font-size:15px;font-weight:600}
+.topbar{background:linear-gradient(180deg,var(--bg2),color-mix(in srgb, var(--bg2) 92%, var(--bg3) 8%));border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+.topbar-title{font-size:16px;font-weight:700;letter-spacing:.2px}
 .topbar-right{display:flex;align-items:center;gap:12px}
 .status-dot{width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block}
 .status-text{color:var(--text3);font-size:12px}
-.refresh-btn{background:var(--border);border:1px solid var(--border2);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
+.refresh-btn{background:var(--border);border:1px solid var(--border2);color:var(--text2);padding:7px 14px;border-radius:9px;cursor:pointer;font-size:12px;transition:all .15s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
 /* 主题切换按钮 */
-.theme-btn{background:var(--border);border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s;white-space:nowrap}
+.theme-btn{background:var(--border);border:1px solid var(--border2);color:var(--text2);padding:7px 12px;border-radius:9px;cursor:pointer;font-size:12px;transition:all .15s;white-space:nowrap}
 .theme-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* Content */
-.content{padding:24px;flex:1;overflow:auto}
+.content{padding:26px;flex:1;overflow:auto}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
 /* Cards */
-.card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
-.card-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.card{background:linear-gradient(180deg,color-mix(in srgb, var(--bg3) 94%, white 6%),var(--bg3));border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 14px 36px rgba(0,0,0,.08)}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
 
 /* Log panel */
 .log-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
@@ -181,6 +181,13 @@ tr:hover td{background:rgba(99,102,241,.04)}
 
 .empty{color:var(--text3);font-size:13px;padding:20px 0}
 .loading{color:var(--text3);font-size:13px}
+.loading-panel{display:flex;align-items:center;gap:12px;padding:16px 2px;color:var(--text3);font-size:13px}
+.loading-dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 0 0 rgba(99,102,241,.4);animation:pulseDot 1.8s infinite}
+.skeleton-row td{padding:10px}
+.skeleton-line{height:10px;border-radius:999px;background:linear-gradient(90deg, rgba(148,163,184,.08), rgba(148,163,184,.22), rgba(148,163,184,.08));background-size:200% 100%;animation:skeletonShimmer 1.4s ease infinite}
+.skeleton-line.sm{width:56px}.skeleton-line.md{width:120px}.skeleton-line.lg{width:100%}.skeleton-line.xs{width:36px}
+@keyframes skeletonShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(99,102,241,.35)}70%{box-shadow:0 0 0 10px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
 
 /* 黑名单标签按钮 */
 .bl-badge-btn{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 7px;border-radius:5px;cursor:pointer;font-size:10px;transition:all .15s;flex-shrink:0}
@@ -229,6 +236,10 @@ tr:hover td{background:rgba(99,102,241,.04)}
 .mini-list-title{font-size:12px;color:var(--text2);margin-bottom:8px}
 .mini-list ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
 .mini-list li{font-size:12px;color:var(--text3);line-height:1.45;word-break:break-all}
+.panel-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:18px;padding:4px 2px 2px}
+.panel-hero h2{font-size:18px;line-height:1.2;margin:0 0 6px;color:var(--text)}
+.panel-hero p{margin:0;color:var(--text3);font-size:13px;max-width:720px}
+.panel-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border2);background:color-mix(in srgb, var(--bg3) 88%, var(--accent) 12%);font-size:12px;color:var(--text2)}
 @media (max-width:760px){.security-summary-columns{grid-template-columns:1fr}}
 @media (max-width:760px){.form-grid-2{grid-template-columns:1fr}}
 </style>
@@ -252,11 +263,14 @@ tr:hover td{background:rgba(99,102,241,.04)}
   <button class="nav-item" onclick="switchTab('blacklist',this)">
     <span class="nav-icon">🚫</span>IP黑名单
   </button>
-  <button class="nav-item" onclick="switchTab('token_blacklist',this)">
-    <span class="nav-icon">🔑</span>Token黑名单
-  </button>
   <button class="nav-item" onclick="switchTab('security',this)">
     <span class="nav-icon">🛡️</span>安全设置
+  </button>
+  <button class="nav-item" onclick="switchTab('waf',this)">
+    <span class="nav-icon">🧱</span>WAF
+  </button>
+  <button class="nav-item" onclick="switchTab('token_blacklist',this)">
+    <span class="nav-icon">🔑</span>Token黑名单
   </button>
   <button class="nav-item" onclick="switchTab('settings',this)">
     <span class="nav-icon">⚙</span>系统设置
@@ -284,6 +298,13 @@ tr:hover td{background:rgba(99,102,241,.04)}
 
     <!-- ─── 日志 ─────────────────────────────────────────── -->
     <div class="tab-panel active" id="panel-logs">
+      <div class="panel-hero">
+        <div>
+          <h2>访问日志</h2>
+          <p>先展示轻量状态，再逐步渲染筛选后的结果。你可以按 IP、Token、UA 和状态码快速缩小范围。</p>
+        </div>
+        <div class="panel-chip">实时观察订阅流量与拦截结果</div>
+      </div>
       <div class="card">
         <!-- 日志模式切换 -->
         <div class="log-mode-btns">
@@ -297,14 +318,14 @@ tr:hover td{background:rgba(99,102,241,.04)}
         </div>
         <!-- 过滤器 -->
         <div class="log-controls">
-          <input class="log-filter" id="filter-ip" placeholder="过滤 IP" oninput="logPage=1;renderLogs()">
-          <input class="log-filter" id="filter-status" placeholder="状态码 如 403" oninput="logPage=1;renderLogs()">
-          <input class="log-filter" id="filter-token" placeholder="过滤 Token（自动去重）" oninput="logPage=1;renderLogs()">
-          <input class="log-filter" id="filter-ua" placeholder="过滤 UA（不分大小写）" oninput="logPage=1;renderLogs()">
+          <input class="log-filter" id="filter-ip" placeholder="过滤 IP" oninput="logPage=1;scheduleLoadLogs()">
+          <input class="log-filter" id="filter-status" placeholder="状态码 如 403" oninput="logPage=1;scheduleLoadLogs()">
+          <input class="log-filter" id="filter-token" placeholder="过滤 Token（自动去重）" oninput="logPage=1;scheduleLoadLogs()">
+          <input class="log-filter" id="filter-ua" placeholder="过滤 UA（不分大小写）" oninput="logPage=1;scheduleLoadLogs()">
           <span class="auto-timer" id="log-count">—</span>
           <div class="radio-group">
-            <label><input type="radio" name="sub-filter" value="subscribe" checked onchange="logPage=1;renderLogs()"> 仅订阅相关</label>
-            <label><input type="radio" name="sub-filter" value="all" onchange="logPage=1;renderLogs()"> 显示全部</label>
+            <label><input type="radio" name="sub-filter" value="subscribe" checked onchange="logPage=1;loadLogs()"> 仅订阅相关</label>
+            <label><input type="radio" name="sub-filter" value="all" onchange="logPage=1;loadLogs()"> 显示全部</label>
           </div>
           <div style="display:flex;gap:4px;margin-left:8px">
             <button class="mode-btn" id="limit-btn-50"  onclick="setLogLimit(50)">50条</button>
@@ -321,7 +342,7 @@ tr:hover td{background:rgba(99,102,241,.04)}
                 <th>请求</th><th>UA</th>
               </tr>
             </thead>
-            <tbody id="log-tbody"><tr><td colspan="7" class="loading">加载中…</td></tr></tbody>
+            <tbody id="log-tbody"><tr class="skeleton-row"><td colspan="7"><div class="loading-panel"><span class="loading-dot"></span><span>正在准备日志视图…</span></div></td></tr><tr class="skeleton-row"><td><div class="skeleton-line sm"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line xs"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line lg"></div></td><td><div class="skeleton-line md"></div></td></tr><tr class="skeleton-row"><td><div class="skeleton-line sm"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line xs"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line lg"></div></td><td><div class="skeleton-line md"></div></td></tr></tbody>
           </table>
         </div>
         <!-- 分页控件（瀑布流模式下隐藏） -->
@@ -602,6 +623,13 @@ tr:hover td{background:rgba(99,102,241,.04)}
 
     <!-- ─── 安全设置 ───────────────────────────────────────── -->
     <div class="tab-panel" id="panel-security">
+      <div class="panel-hero">
+        <div>
+          <h2>安全设置</h2>
+          <p>这里管理限频、恶意探测临时抑制，以及基于日志关系的 Token / IP 异常行为检测与处置。</p>
+        </div>
+        <div class="panel-chip">核心拦截策略与检测操作</div>
+      </div>
       <div class="security-layout">
         <div class="security-card accent">
           <div class="security-card-title"><h3>访问限频</h3><span>Rate Limit</span></div>
@@ -615,22 +643,6 @@ tr:hover td{background:rgba(99,102,241,.04)}
               <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">Burst</label>
               <input class="ip-input" id="cfg-security-rate-burst" type="number" min="0" placeholder="5" value="<?= _val((string)($_preSg['security_rate_burst'] ?? DEFAULT_SECURITY_RATE_BURST)) ?>" style="width:100%">
             </div>
-          </div>
-        </div>
-
-        <div class="security-card">
-          <div class="security-card-title"><h3>WAF</h3><span>Keyword Block</span></div>
-          <div class="security-desc">对命中危险关键词的订阅请求进行拦截，适合挡掉常见探测路径与下载器特征。</div>
-          <label class="check-row" style="margin-bottom:12px">
-            <input id="cfg-security-waf-enabled" type="checkbox" <?= !isset($_preSg['security_waf_enabled']) || $_preSg['security_waf_enabled'] ? 'checked' : '' ?>>
-            <div>
-              <strong>启用 WAF 规则拦截</strong>
-              <span>命中危险关键词时阻断当前请求，不宣称持久写入系统防火墙黑名单。</span>
-            </div>
-          </label>
-          <div>
-            <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">危险关键词列表</label>
-            <textarea class="textarea-input" id="cfg-security-waf-patterns" placeholder="每行一个关键词或路径片段&#10;/cgi-bin/&#10;/etc/passwd&#10;wget"><?= _val(implode("\n", $__securityPatterns)) ?></textarea>
           </div>
         </div>
 
@@ -716,6 +728,49 @@ tr:hover td{background:rgba(99,102,241,.04)}
       </div>
     </div>
 
+    <!-- ─── WAF ────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-waf">
+      <div class="panel-hero">
+        <div>
+          <h2>WAF</h2>
+          <p>独立管理危险关键词拦截。适合将扫描路径、敏感文件探测和下载器特征单独维护，避免和其他安全策略混在一起。</p>
+        </div>
+        <div class="panel-chip">关键词阻断与请求拦截</div>
+      </div>
+      <div class="security-layout" style="grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)">
+        <div class="security-card accent">
+          <div class="security-card-title"><h3>WAF 规则</h3><span>Keyword Block</span></div>
+          <label class="check-row" style="margin-bottom:12px">
+            <input id="cfg-security-waf-enabled" type="checkbox" <?= !isset($_preSg['security_waf_enabled']) || $_preSg['security_waf_enabled'] ? 'checked' : '' ?>>
+            <div>
+              <strong>启用 WAF 规则拦截</strong>
+              <span>命中危险关键词时阻断当前请求，不宣称持久写入系统防火墙黑名单。</span>
+            </div>
+          </label>
+          <div>
+            <label style="display:block;color:var(--text2);font-size:12px;margin-bottom:5px">危险关键词列表</label>
+            <textarea class="textarea-input" id="cfg-security-waf-patterns" placeholder="每行一个关键词或路径片段&#10;/cgi-bin/&#10;/etc/passwd&#10;wget"><?= _val(implode("\n", $__securityPatterns)) ?></textarea>
+          </div>
+          <div class="security-savebar">
+            <div class="apply-hint">保存 WAF 时会保留其他安全设置字段，只更新 <code class="code-hint">security_waf_enabled</code> 与 <code class="code-hint">security_waf_patterns</code>。</div>
+            <button class="btn-primary" onclick="saveWafSettings()">保存 WAF 设置</button>
+          </div>
+        </div>
+        <div class="security-card">
+          <div class="security-card-title"><h3>说明</h3><span>Notes</span></div>
+          <div class="security-desc">WAF 页只负责关键词命中拦截，便于你单独维护扫描路径、敏感文件访问和下载器指纹。与限频、临时抑制、关系检测分开后，策略层次更清晰。</div>
+          <div class="mini-list">
+            <div class="mini-list-title">建议保留的默认关键词</div>
+            <ul>
+              <li><strong style="color:var(--text)">/cgi-bin/</strong>：常见脚本探测路径</li>
+              <li><strong style="color:var(--text)">/etc/passwd</strong>：敏感文件探测</li>
+              <li><strong style="color:var(--text)">wget</strong>：下载器或恶意探针特征</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- .content -->
 </div><!-- .main -->
 
@@ -725,9 +780,13 @@ tr:hover td{background:rgba(99,102,241,.04)}
 // ── 状态 ─────────────────────────────────────────────────────
 const BASE = <?= json_encode(ADMIN_SECRET_PATH !== '' ? '/' . ADMIN_SECRET_PATH : '') ?>;
 let allLogs = [];
+let logMeta = {total: 0, has_more: false, limit: 100, offset: 0};
 let logMode = 'today';   // 'today' | 'all'
 let logLimit = 100;      // 0=瀑布流（无限制）
 let logPage = 1;         // 当前页（分页模式）
+let logsLoading = false;
+let listCacheLoaded = false;
+let cloudCidrsLoaded = false;
 let blacklistIpSet = new Set();
 let whitelistIpSet = new Set();
 let cloudCidrs = [];     // 云服务商CIDR列表，用于检测云IP
@@ -780,8 +839,9 @@ const TABS = {
   ua_blacklist:    {title:'UA',          loader:loadUaBlacklist},
   whitelist:       {title:'IP白名单',    loader:loadWhitelist},
   blacklist:       {title:'IP黑名单',    loader:loadBlacklist},
-  token_blacklist: {title:'Token黑名单', loader:loadTokenBlacklist},
   security:        {title:'安全设置',    loader:loadSecuritySettings},
+  waf:             {title:'WAF',         loader:loadWafSettings},
+  token_blacklist: {title:'Token黑名单', loader:loadTokenBlacklist},
   settings:        {title:'系统设置',    loader:loadSettings},
 };
 let currentTab = 'logs';
@@ -873,6 +933,8 @@ function copyText(text) {
 // ── 日志模式切换 ───────────────────────────────────────────────
 function setLogMode(mode) {
   logMode = mode;
+  logPage = 1;
+  allLogs = [];
   document.getElementById('btn-today').classList.toggle('active', mode === 'today');
   document.getElementById('btn-all').classList.toggle('active', mode === 'all');
   loadLogs();
@@ -882,6 +944,7 @@ function setLogMode(mode) {
 function setLogLimit(n) {
   logLimit = n;
   logPage = 1;
+  allLogs = [];
   ['50','100','500','inf'].forEach(k => {
     const btn = document.getElementById('limit-btn-' + k);
     if (btn) btn.classList.remove('active');
@@ -889,18 +952,19 @@ function setLogLimit(n) {
   const key = n === 0 ? 'inf' : String(n);
   const btn = document.getElementById('limit-btn-' + key);
   if (btn) btn.classList.add('active');
-  renderLogs();
+  loadLogs();
 }
 
 // ── 分页控制 ──────────────────────────────────────────────────
 function changePage(delta) {
   logPage += delta;
-  renderLogs();
+  if (logPage < 1) logPage = 1;
+  loadLogs();
 }
 
 function jumpPage() {
   const v = parseInt(document.getElementById('page-jump').value);
-  if (!isNaN(v) && v >= 1) { logPage = v; renderLogs(); }
+  if (!isNaN(v) && v >= 1) { logPage = v; loadLogs(); }
 }
 
 
@@ -929,67 +993,90 @@ function isCloudIp(ip) {
 }
 
 // ── 日志 ──────────────────────────────────────────────────────
-async function loadLogs() {
-  document.getElementById('log-tbody').innerHTML = '<tr><td colspan="7" class="loading">加载中…</td></tr>';
-  const [logsData, blData, cloudData, wlData] = await Promise.all([
-    apiFetch('/api/logs.php?mode=' + logMode),
+let logLoadTimer = null;
+
+function scheduleLoadLogs() {
+  clearTimeout(logLoadTimer);
+  if (logLimit === 0) allLogs = [];
+  logLoadTimer = setTimeout(() => loadLogs(), 250);
+}
+
+async function ensureLogLists() {
+  if (listCacheLoaded) return;
+  const [blData, wlData] = await Promise.all([
     apiFetch('/api/blacklist.php?no_idc=1'),
-    apiFetch('/api/blacklist.php?cloud_cidrs=1'),
     apiFetch('/api/whitelist.php'),
   ]);
   blacklistIpSet = new Set((blData.entries || []).map(e => e.ip));
   whitelistIpSet = new Set((wlData.entries || []).map(e => e.ip));
-  cloudCidrs = cloudData.cidrs || [];
   wlCommentMap = {}; (wlData.entries || []).forEach(e => wlCommentMap[e.ip] = e.comment || '');
   blCommentMap = {}; (blData.entries || []).forEach(e => blCommentMap[e.ip] = e.comment || '');
+  listCacheLoaded = true;
+}
+
+async function ensureCloudCidrsLazy() {
+  if (cloudCidrsLoaded) return;
+  const cloudData = await apiFetch('/api/blacklist.php?cloud_cidrs=1');
+  cloudCidrs = cloudData.cidrs || [];
+  cloudCidrsLoaded = true;
+  // 云 IP 标记是增强信息，延迟刷新当前页即可，避免阻塞首屏。
+  if (allLogs.length) renderLogRows(allLogs);
+}
+
+function buildLogQuery(offset, limit) {
+  const p = new URLSearchParams();
+  p.set('mode', logMode);
+  p.set('limit', String(limit));
+  p.set('offset', String(offset));
+  p.set('ip', document.getElementById('filter-ip').value.trim());
+  p.set('status', document.getElementById('filter-status').value.trim());
+  p.set('token', document.getElementById('filter-token').value.trim());
+  p.set('ua', document.getElementById('filter-ua').value.trim());
+  p.set('sub_only', document.querySelector('input[name="sub-filter"][value="subscribe"]').checked ? '1' : '0');
+  return p.toString();
+}
+
+async function loadLogs(append = false) {
+  if (logsLoading) return;
+  const prevLogs = allLogs;
+  logsLoading = true;
+  if (!append) document.getElementById('log-tbody').innerHTML = '<tr class="skeleton-row"><td colspan="7"><div class="loading-panel"><span class="loading-dot"></span><span>正在加载日志与筛选状态…</span></div></td></tr><tr class="skeleton-row"><td><div class="skeleton-line sm"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line xs"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line lg"></div></td><td><div class="skeleton-line md"></div></td></tr><tr class="skeleton-row"><td><div class="skeleton-line sm"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line xs"></div></td><td><div class="skeleton-line md"></div></td><td><div class="skeleton-line lg"></div></td><td><div class="skeleton-line md"></div></td></tr>';
+  await ensureLogLists();
+  const limit = logLimit > 0 ? logLimit : 100;
+  if (!append) allLogs = [];
+  const offset = logLimit > 0 ? (logPage - 1) * limit : (append ? allLogs.length : 0);
+  const logsData = await apiFetch('/api/logs.php?' + buildLogQuery(offset, limit));
   if (!logsData.ok) {
+    allLogs = prevLogs;
     document.getElementById('log-tbody').innerHTML = '<tr><td colspan="7" class="empty">加载失败：' + esc(logsData.error||'未知错误') + '</td></tr>';
-    toast('加载日志失败: ' + (logsData.error||''), 'err'); return;
+    toast('加载日志失败: ' + (logsData.error||''), 'err'); logsLoading = false; return;
   }
-  allLogs = logsData.logs || [];
+  if (logLimit > 0) {
+    allLogs = logsData.logs || [];
+  } else {
+    allLogs = append && offset > 0 ? allLogs.concat(logsData.logs || []) : (logsData.logs || []);
+  }
+  logMeta = {
+    total: logsData.total || 0,
+    has_more: !!logsData.has_more,
+    limit: logsData.limit || limit,
+    offset: logsData.offset || offset,
+  };
   if (logsData.subscribe_path) currentSettings.subscribe_path = logsData.subscribe_path;
   renderLogs();
+  logsLoading = false;
+  if (!cloudCidrsLoaded) ensureCloudCidrsLazy();
 }
 
 function renderLogs() {
-  const fIp     = document.getElementById('filter-ip').value.trim().toLowerCase();
-  const fStatus = document.getElementById('filter-status').value.trim();
-  const fToken  = document.getElementById('filter-token').value.trim().toLowerCase();
-  const fUa     = document.getElementById('filter-ua').value.trim().toLowerCase();
-  const subOnly = document.querySelector('input[name="sub-filter"][value="subscribe"]').checked;
-
-  let rows = allLogs.filter(l => {
-    const sp = (currentSettings.subscribe_path || '/api/v1/client/subscribe').replace(/\/$/, '');
-    if (subOnly && !l.request.includes(sp)) return false;
-    if (fIp     && !l.ip.toLowerCase().includes(fIp)) return false;
-    if (fStatus && String(l.status) !== fStatus) return false;
-    if (fToken  && !l.token.toLowerCase().includes(fToken)) return false;
-    if (fUa     && !(l.ua || '').toLowerCase().includes(fUa)) return false;
-    return true;
-  });
-
-  // 最新的在最上面
-  rows = rows.slice().reverse();
-
-  // Token过滤时按IP去重（每个IP只保留最新一条）
-  if (fToken) {
-    const seen = new Set();
-    rows = rows.filter(l => {
-      if (seen.has(l.ip)) return false;
-      seen.add(l.ip);
-      return true;
-    });
-  }
-
-  const total = rows.length;
+  const rows = allLogs;
+  const total = logMeta.total || rows.length;
 
   // ── 分页 ──────────────────────────────────────────────────────
   const pg = document.getElementById('log-pagination');
-  if (logLimit > 0 && total > 0) {
-    const totalPages = Math.ceil(total / logLimit);
+  if (logLimit > 0) {
+    const totalPages = Math.max(1, Math.ceil(total / logLimit));
     logPage = Math.max(1, Math.min(logPage, totalPages));
-    const start = (logPage - 1) * logLimit;
-    const displayRows = rows.slice(start, start + logLimit);
     document.getElementById('log-count').textContent =
       `${total} 条（第${logPage}/${totalPages}页，每页${logLimit}条）`;
     document.getElementById('page-info').textContent =
@@ -998,17 +1085,17 @@ function renderLogs() {
     document.getElementById('page-next').disabled = logPage >= totalPages;
     pg.style.display = 'flex';
 
-    if (!displayRows.length) {
+    if (!rows.length) {
       document.getElementById('log-tbody').innerHTML =
         '<tr><td colspan="7" class="empty">暂无匹配记录</td></tr>';
       return;
     }
-    renderLogRows(displayRows);
+    renderLogRows(rows);
   } else {
-    // 瀑布流：显示全部，隐藏分页
+    // 瀑布流：分批加载，避免一次拉取全部日志
     pg.style.display = 'none';
-    document.getElementById('log-count').textContent = `${total} / ${allLogs.length} 条`;
-    if (!total) {
+    document.getElementById('log-count').innerHTML = `${rows.length} / ${total} 条${logMeta.has_more ? ' <button class="mode-btn" onclick="loadLogs(true)">加载更多</button>' : ''}`;
+    if (!rows.length) {
       document.getElementById('log-tbody').innerHTML =
         '<tr><td colspan="7" class="empty">暂无匹配记录</td></tr>';
       return;
@@ -1911,13 +1998,6 @@ async function loadSecuritySettings() {
   currentSettings = data.settings || currentSettings || {};
   document.getElementById('cfg-security-rate-rpm').value = currentSettings.security_rate_rpm ?? 10;
   document.getElementById('cfg-security-rate-burst').value = currentSettings.security_rate_burst ?? 5;
-  document.getElementById('cfg-security-waf-enabled').checked = !!(currentSettings.security_waf_enabled ?? true);
-  const wafPatterns = Array.isArray(currentSettings.security_waf_patterns)
-    ? currentSettings.security_waf_patterns
-    : (typeof currentSettings.security_waf_patterns === 'string'
-      ? currentSettings.security_waf_patterns.split(/\r?\n|\s*,\s*/)
-      : ['/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode']);
-  document.getElementById('cfg-security-waf-patterns').value = (wafPatterns || []).map(v => String(v || '').trim()).filter(Boolean).join('\n') || '/cgi-bin/\n/etc/passwd\nwget';
   document.getElementById('cfg-security-auto-ban-enabled').checked = !!(currentSettings.security_auto_ban_enabled ?? true);
   document.getElementById('cfg-security-auto-ban-rpm').value = currentSettings.security_auto_ban_rpm ?? 3;
   document.getElementById('cfg-security-auto-ban-burst').value = currentSettings.security_auto_ban_burst ?? 2;
@@ -1935,6 +2015,19 @@ async function loadSecuritySettings() {
   document.getElementById('cfg-security-ip-token-window-minutes').value = currentSettings.security_ip_token_window_minutes ?? legacyWindow;
   document.getElementById('cfg-security-ip-max-tokens').value = currentSettings.security_ip_max_tokens ?? 8;
   loadSecurityMonitorSummary();
+}
+
+async function loadWafSettings() {
+  const data = await apiFetch('/api/settings.php');
+  if (!data.ok) { toast('加载 WAF 设置失败: ' + (data.error||''), 'err'); return; }
+  currentSettings = data.settings || currentSettings || {};
+  document.getElementById('cfg-security-waf-enabled').checked = !!(currentSettings.security_waf_enabled ?? true);
+  const wafPatterns = Array.isArray(currentSettings.security_waf_patterns)
+    ? currentSettings.security_waf_patterns
+    : (typeof currentSettings.security_waf_patterns === 'string'
+      ? currentSettings.security_waf_patterns.split(/\r?\n|\s*,\s*/)
+      : ['/cgi-bin/', '/etc/passwd', 'wget', 'curl', 'busybox', 'chmod', 'eval(', 'base64_decode']);
+  document.getElementById('cfg-security-waf-patterns').value = (wafPatterns || []).map(v => String(v || '').trim()).filter(Boolean).join('\n') || '/cgi-bin/\n/etc/passwd\nwget';
 }
 
 
@@ -2031,11 +2124,6 @@ async function saveSecuritySettings() {
   const tokenMaxIps = parseInt(document.getElementById('cfg-security-token-max-ips').value.trim(), 10);
   const ipTokenWindow = parseInt(document.getElementById('cfg-security-ip-token-window-minutes').value.trim(), 10);
   const ipMaxTokens = parseInt(document.getElementById('cfg-security-ip-max-tokens').value.trim(), 10);
-  const wafPatterns = document.getElementById('cfg-security-waf-patterns').value
-    .split(/\r?\n|,/)
-    .map(v => v.trim())
-    .filter(Boolean);
-
   if (isNaN(rateRpm) || rateRpm < 1) { toast('订阅访问限频需为大于 0 的整数', 'err'); return; }
   if (isNaN(rateBurst) || rateBurst < 0) { toast('限频 burst 不能小于 0', 'err'); return; }
   if (isNaN(autoBanRpm) || autoBanRpm < 1) { toast('自动抑制阈值需为大于 0 的整数', 'err'); return; }
@@ -2044,7 +2132,6 @@ async function saveSecuritySettings() {
   if (isNaN(tokenMaxIps) || tokenMaxIps < 2) { toast('单个 Token 最大 IP 数至少为 2', 'err'); return; }
   if (isNaN(ipTokenWindow) || ipTokenWindow < 1) { toast('IP 多 Token 检测时间窗口需为大于 0 的整数', 'err'); return; }
   if (isNaN(ipMaxTokens) || ipMaxTokens < 2) { toast('单个 IP 最大 Token 数至少为 2', 'err'); return; }
-  if (!wafPatterns.length) { toast('请至少保留一条危险关键词', 'err'); return; }
 
   const tokenRuleEnabled = document.getElementById('cfg-security-token-ip-limit-enabled').checked;
   const ipRuleEnabled = document.getElementById('cfg-security-ip-token-limit-enabled').checked;
@@ -2055,8 +2142,6 @@ async function saveSecuritySettings() {
   const body = {
     security_rate_rpm: rateRpm,
     security_rate_burst: rateBurst,
-    security_waf_enabled: document.getElementById('cfg-security-waf-enabled').checked,
-    security_waf_patterns: wafPatterns,
     security_auto_ban_enabled: document.getElementById('cfg-security-auto-ban-enabled').checked,
     security_auto_ban_rpm: autoBanRpm,
     security_auto_ban_burst: autoBanBurst,
@@ -2078,6 +2163,28 @@ async function saveSecuritySettings() {
   if (d.ok) {
     toast('✅ 安全设置已保存');
     loadSecuritySettings();
+  } else {
+    toast(d.error || '保存失败', 'err');
+  }
+}
+
+async function saveWafSettings() {
+  const wafPatterns = document.getElementById('cfg-security-waf-patterns').value
+    .split(/\r?\n|,/)
+    .map(v => v.trim())
+    .filter(Boolean);
+  if (!wafPatterns.length) { toast('请至少保留一条危险关键词', 'err'); return; }
+  const body = {
+    security_waf_enabled: document.getElementById('cfg-security-waf-enabled').checked,
+    security_waf_patterns: wafPatterns,
+  };
+  const d = await apiFetch('/api/settings.php', {
+    method: 'POST', body: JSON.stringify(body),
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+  });
+  if (d.ok) {
+    toast('✅ WAF 设置已保存');
+    loadWafSettings();
   } else {
     toast(d.error || '保存失败', 'err');
   }

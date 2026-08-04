@@ -146,35 +146,73 @@ if ($method === 'DELETE') {
     json_out(['ok' => true, 'deleted' => $deletedCount, 'kept' => count($kept)]);
 }
 
-// ── GET — 返回日志列表 ──────────────────────────────────────
+// ── GET — 返回日志列表（服务端分页，默认只返回最新 100 条）──────
 $mode    = $_GET['mode'] ?? 'today';
 $today   = date('d/M/Y');
-$maxRows = 3000;
+$limit   = clamp_int($_GET['limit'] ?? 100, 1, 500);
+$offset  = clamp_int($_GET['offset'] ?? 0, 0, 10000000);
+$tailLines = isset($_GET['tail_lines']) ? clamp_int($_GET['tail_lines'], 1, 2000) : null;
+$limitForBuffer = $tailLines ?: $limit;
+$offsetForBuffer = $tailLines ? 0 : $offset;
 $logs    = [];
 $settings = read_settings_for_logs();
 $subscribePath = $settings['subscribe_path'] ?? '/api/v1/client/subscribe';
+$filters = [
+    'ip'       => strtolower(trim((string)($_GET['ip'] ?? ''))),
+    'status'   => trim((string)($_GET['status'] ?? '')),
+    'token'    => strtolower(trim((string)($_GET['token'] ?? ''))),
+    'ua'       => strtolower(trim((string)($_GET['ua'] ?? ''))),
+    'sub_only' => (($_GET['sub_only'] ?? '1') !== '0'),
+];
 
-if (file_exists(LOG_FILE)) {
-    $handle = fopen(LOG_FILE, 'r');
-    if ($handle) {
-        $buffer = [];
-        while (($line = fgets($handle)) !== false) {
-            $line = rtrim($line);
-            if ($line === '') continue;
-            if ($mode === 'today' && !str_contains($line, "[$today:")) continue;
-            $buffer[] = $line;
-            if (count($buffer) > $maxRows) array_shift($buffer);
-        }
-        fclose($handle);
+$total = 0;
+$buffer = [];
+$bufferMax = $offsetForBuffer + $limitForBuffer;
+$dedupeByIp = $filters['token'] !== '';
+$latestByIp = [];
 
-        foreach ($buffer as $raw) {
-            $entry = parse_line($raw, $subscribePath);
-            if ($entry) $logs[] = $entry;
+if (file_exists(LOG_FILE) && ($handle = fopen(LOG_FILE, 'r'))) {
+    while (($line = fgets($handle)) !== false) {
+        $line = rtrim($line);
+        if ($line === '') continue;
+        if ($mode === 'today' && !str_contains($line, "[$today:")) continue;
+
+        $entry = parse_line($line, $subscribePath);
+        if (!$entry || !log_entry_matches($entry, $filters, $subscribePath)) continue;
+
+        if ($dedupeByIp) {
+            $latestByIp[$entry['ip']] = $entry;
+        } else {
+            $total++;
+            $buffer[] = $entry;
+            if (count($buffer) > $bufferMax) array_shift($buffer);
         }
     }
+    fclose($handle);
 }
 
-json_out(['ok' => true, 'logs' => $logs, 'date' => $today, 'mode' => $mode, 'subscribe_path' => $subscribePath]);
+if ($dedupeByIp) {
+    $buffer = array_values($latestByIp);
+    usort($buffer, fn($a, $b) => strcmp($a['time'], $b['time']));
+    $total = count($buffer);
+}
+
+// access.log 为时间正序；API 返回最新在前。
+$newestFirst = array_reverse($buffer);
+$logs = $tailLines ? $newestFirst : array_slice($newestFirst, $offset, $limit);
+$hasMore = $total > ($offsetForBuffer + $limitForBuffer);
+
+json_out([
+    'ok' => true,
+    'logs' => $logs,
+    'date' => $today,
+    'mode' => $mode,
+    'subscribe_path' => $subscribePath,
+    'limit' => $limitForBuffer,
+    'offset' => $offsetForBuffer,
+    'total' => $total,
+    'has_more' => $hasMore,
+]);
 
 // ── 解析一行内部格式日志 ──────────────────────────────────────
 function parse_line(string $line, string $subscribePath): ?array {
@@ -202,6 +240,31 @@ function parse_line(string $line, string $subscribePath): ?array {
         'ua'      => $ua,
         'token'   => $token,
     ];
+}
+
+function log_entry_matches(array $entry, array $filters, string $subscribePath): bool {
+    if ($filters['sub_only'] && !is_subscribe_request($entry['request'], $subscribePath, $entry['token'])) return false;
+    if ($filters['ip'] !== '' && !str_contains(strtolower($entry['ip']), $filters['ip'])) return false;
+    if ($filters['status'] !== '' && (string)$entry['status'] !== $filters['status']) return false;
+    if ($filters['token'] !== '' && !str_contains(strtolower($entry['token']), $filters['token'])) return false;
+    if ($filters['ua'] !== '' && !str_contains(strtolower($entry['ua'] ?? ''), $filters['ua'])) return false;
+    return true;
+}
+
+function is_subscribe_request(string $request, string $subscribePath, string $token): bool {
+    if ($token !== '') return true;
+    $parts = preg_split('/\s+/', trim($request));
+    $target = $parts[1] ?? '';
+    $path = parse_url($target, PHP_URL_PATH) ?: '';
+    $base = normalize_subscribe_path($subscribePath);
+    return $path === $base || str_starts_with($path, $base . '/');
+}
+
+function clamp_int($value, int $min, int $max): int {
+    $n = is_numeric($value) ? (int)$value : $min;
+    if ($n < $min) return $min;
+    if ($n > $max) return $max;
+    return $n;
 }
 
 // ── nginx combined 格式 → 内部格式 ────────────────────────────
